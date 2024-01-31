@@ -1,0 +1,10 @@
+const path = require('path')
+
+module.exports = {
+  env: process.env.NODE_ENV ? process.env.NODE_ENV : "dev", // 这里做判断的原因，在后续配置 Package.json 时会介绍
+  config: path.resolve("src", "config/sequelize.json"),
+  "seeders-path": path.resolve("src", "database/seeders"),
+  "migrations-path": path.resolve("src", "database/migrations"),
+  "models-path": path.resolve("src", "database/models"),
+  debug: true,
+};

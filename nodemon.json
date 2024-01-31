@@ -1,0 +1,5 @@
+{
+  "watch": ["src"],
+  "ext": "js,ts",
+  "exec": "rimraf lib && tsc --outDir lib --module CommonJS --experimentalDecorators && cross-env NODE_ENV=dev node ./lib/index.js"
+}

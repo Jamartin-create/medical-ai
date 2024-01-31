@@ -1,0 +1,30 @@
+{
+	"dev": {
+        "host": "127.0.0.1",
+        "dialect": "mysql",
+        "username": "root",
+        "password": "13733531133.,dyz",
+        "database": "medical-ai"
+    },
+    "prod": {
+        "host": "127.0.0.1",
+        "dialect": "mysql",
+        "username": "root",
+        "password": "13733531133.,dyz",
+        "database": "medical-ai"
+    },
+    "local": {
+        "host": "127.0.0.1",
+        "dialect": "mysql",
+        "username": "root",
+        "password": "13733531133.,dyz",
+        "database": "medical-ai"
+    },
+    "test": {
+        "host": "127.0.0.1",
+        "dialect": "mysql",
+        "username": "root",
+        "password": "13733531133.,dyz",
+        "database": "medical-ai"
+    }
+}
