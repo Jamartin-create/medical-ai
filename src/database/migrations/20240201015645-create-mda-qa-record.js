@@ -12,7 +12,7 @@ module.exports = {
       uid: {
         type: Sequelize.STRING
       },
-      reviewid: {
+      userid: {
         type: Sequelize.STRING
       },
       chatDetail: {

@@ -10,6 +10,7 @@ export const ErrorCode = {
   PARAMS_MISS_ERROR: generatorMError(30001, '参数缺失'),
   NOT_FOUND_USER_ERROR: generatorMError(30002, '未找到用户'),
   NOT_FOUND_CASE_ERROR: generatorMError(30003, '未找到病例'),
+  NOT_FOUND_CHAT_ERROR: generatorMError(30004, '未找到对话'),
   EXCUTE_ERROR: generatorMError(99999, '执行异常')
 }
 

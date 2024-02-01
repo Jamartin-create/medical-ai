@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { AppRouter } from 'mduash/lib/decorators'
 import './modules/user/controller'
 import './modules/case/controller'
+import './modules/chat/controller'
 import jwt from '../plugin/jwt'
 
 const routes = Router()

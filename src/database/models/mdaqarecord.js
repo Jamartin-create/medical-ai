@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaQaRecord.init({
     uid: DataTypes.STRING,
-    reviewid: DataTypes.STRING,
+    userid: DataTypes.STRING,
     chatDetail: DataTypes.STRING,
     chatcount: DataTypes.INTEGER,
     startAt: DataTypes.DATE,

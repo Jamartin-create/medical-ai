@@ -26,9 +26,9 @@ export const CaseDao = {
     // 编辑一条数据
     async updateOne(data: any) {
         return await transactionAction(async function (tran) {
-             await Case.update(
+            await Case.update(
                 beforeUpdateOne(data),
-                { where: {uid: data.uid}, transaction: tran}
+                { where: { uid: data.uid }, transaction: tran }
             )
         })
     }
@@ -70,7 +70,7 @@ export default class CaseService {
     static async getCaseList(data: any) {
         // TODO：分页查询
         const { auth } = data
-        return await Case.findAll({where: {userid: auth.uid}})
+        return await Case.findAll({ where: { userid: auth.uid } })
     }
 
     // 查询病例详情

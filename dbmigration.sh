@@ -2,10 +2,10 @@
 npx sequelize-cli model:generate --name mdaUser --attributes uid:string,username:string,password:string,avatar:string,realname:string,age:integer,tel:string,email:string,status:integer
 
 # 问答记录（msgid 可能需要连 mongodb，待定……）
-npx sequelize-cli model:generate --name mdaQaRecord --attributes uid:string,reviewid:string,chatDetail:string,chatcount:integer,startAt:date,endAt:date
+npx sequelize-cli model:generate --name mdaQaRecord --attributes uid:string,userid:string,chatDetail:string,chatcount:integer,startAt:date,endAt:date
 
 # 问答总结
-npx sequelize-cli model:generate --name mdaQaReview --attributes uid:string,tags:string,content:string,helpful:integer,comment:string
+npx sequelize-cli model:generate --name mdaQaReview --attributes uid:string,recordid:string,tags:string,content:string,helpful:integer,comment:string
 
 # ai生成 计划总览
 npx sequelize-cli model:generate --name mdaPlanOverview --attributes uid:string,summary:string,title:string,target:string,cycle:string,helpful:integer,status:integer

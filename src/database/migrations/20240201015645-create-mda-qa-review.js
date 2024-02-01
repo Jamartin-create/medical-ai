@@ -12,6 +12,9 @@ module.exports = {
       uid: {
         type: Sequelize.STRING
       },
+      recordid: {
+        type: Sequelize.STRING
+      },
       tags: {
         type: Sequelize.STRING
       },

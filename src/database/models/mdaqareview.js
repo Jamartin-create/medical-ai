@@ -15,6 +15,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaQaReview.init({
     uid: DataTypes.STRING,
+    recordid: DataTypes.STRING,
     tags: DataTypes.STRING,
     content: DataTypes.STRING,
     helpful: DataTypes.INTEGER,
