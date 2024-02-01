@@ -41,7 +41,7 @@ export class CaseInfo {
     @Get('/detail')
     async getCaseDetail(req: Request, res: Response, next: NextFunction) {
         try {
-            res.send(SuccessRes(await CaseService.getCaseDetail(req.body)))
+            res.send(SuccessRes(await CaseService.getCaseDetail(req.query)))
         } catch (e) {
             next(e)
         }
