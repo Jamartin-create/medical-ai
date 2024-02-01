@@ -9,7 +9,7 @@ env.config({
 
 const config = {
   server: {
-    port: 3460
+    port: process.env.SERVER_PORT
   },
   jwt: {
     salt: process.env.JWT_SALT,
