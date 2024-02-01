@@ -15,6 +15,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaCaseAna.init({
     uid: DataTypes.STRING,
+    caseid: DataTypes.STRING,
     helpful: DataTypes.INTEGER,
     type: DataTypes.INTEGER,
     advice: DataTypes.STRING,

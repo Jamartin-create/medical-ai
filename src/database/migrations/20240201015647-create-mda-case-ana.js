@@ -12,6 +12,9 @@ module.exports = {
       uid: {
         type: Sequelize.STRING
       },
+      caseid: {
+        type: Sequelize.STRING
+      },
       helpful: {
         type: Sequelize.INTEGER
       },

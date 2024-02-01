@@ -18,7 +18,7 @@ module.exports = {
       summary: {
         type: Sequelize.STRING
       },
-      caseid: {
+      userid: {
         type: Sequelize.STRING
       },
       medical: {
@@ -27,8 +27,8 @@ module.exports = {
       mdHistory: {
         type: Sequelize.STRING
       },
-      recordDate: {
-        type: Sequelize.STRING
+      status: {
+        type: Sequelize.INTEGER
       },
       createdAt: {
         type: Sequelize.DATE

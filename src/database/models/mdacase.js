@@ -17,10 +17,10 @@ module.exports = (sequelize, DataTypes) => {
     uid: DataTypes.STRING,
     curSituation: DataTypes.INTEGER,
     summary: DataTypes.STRING,
-    caseid: DataTypes.STRING,
+    userid: DataTypes.STRING,
     medical: DataTypes.STRING,
     mdHistory: DataTypes.STRING,
-    recordDate: DataTypes.STRING
+    status: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'mdaCase',

@@ -9,6 +9,7 @@ export const ErrorCode = {
   AUTH_PWD_ERROR: generatorMError(20002, '密码错误'),
   PARAMS_MISS_ERROR: generatorMError(30001, '参数缺失'),
   NOT_FOUND_USER_ERROR: generatorMError(30002, '未找到用户'),
+  NOT_FOUND_CASE_ERROR: generatorMError(30003, '未找到病例'),
   EXCUTE_ERROR: generatorMError(99999, '执行异常')
 }
 
