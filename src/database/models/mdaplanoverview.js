@@ -15,12 +15,10 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaPlanOverview.init({
     uid: DataTypes.STRING,
-    summary: DataTypes.STRING,
+    planid: DataTypes.STRING,
+    content: DataTypes.STRING,
     title: DataTypes.STRING,
-    target: DataTypes.STRING,
-    cycle: DataTypes.STRING,
-    helpful: DataTypes.INTEGER,
-    status: DataTypes.INTEGER
+    helpful: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'mdaPlanOverview',

@@ -12,7 +12,7 @@ module.exports = {
       uid: {
         type: Sequelize.STRING
       },
-      overviewid: {
+      planid: {
         type: Sequelize.STRING
       },
       tags: {

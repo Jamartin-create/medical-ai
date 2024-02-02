@@ -11,6 +11,8 @@ export const ErrorCode = {
   NOT_FOUND_USER_ERROR: generatorMError(30002, '未找到用户'),
   NOT_FOUND_CASE_ERROR: generatorMError(30003, '未找到病例'),
   NOT_FOUND_CHAT_ERROR: generatorMError(30004, '未找到对话'),
+  NOT_FOUND_PLAN_ERROR: generatorMError(30005, '未找到计划'),
+  NOT_FOUND_PLAN_RECORD_ERROR: generatorMError(30005, '未找到打卡记录'),
   EXCUTE_ERROR: generatorMError(99999, '执行异常')
 }
 

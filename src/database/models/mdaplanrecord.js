@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaPlanRecord.init({
     uid: DataTypes.STRING,
-    overviewid: DataTypes.STRING,
+    planid: DataTypes.STRING,
     diet: DataTypes.STRING,
     sleep: DataTypes.STRING,
     medical: DataTypes.STRING,

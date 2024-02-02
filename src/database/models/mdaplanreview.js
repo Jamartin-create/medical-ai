@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaPlanReview.init({
     uid: DataTypes.STRING,
-    overviewid: DataTypes.STRING,
+    planid: DataTypes.STRING,
     tags: DataTypes.STRING,
     content: DataTypes.STRING,
     comment: DataTypes.STRING,

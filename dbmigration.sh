@@ -7,17 +7,20 @@ npx sequelize-cli model:generate --name mdaQaRecord --attributes uid:string,user
 # 问答总结
 npx sequelize-cli model:generate --name mdaQaReview --attributes uid:string,recordid:string,tags:string,content:string,helpful:integer,comment:string
 
+# 用户输入计划目标（type：0=病例，1=养生，2=康复）
+npx sequelize-cli model:generate --name mdaPlan --attributes uid:string,userid:string,type:integer,caseid:string,target:string,cycle:string,startAt:date,endAt:date
+
 # ai生成 计划总览
-npx sequelize-cli model:generate --name mdaPlanOverview --attributes uid:string,summary:string,title:string,target:string,cycle:string,helpful:integer,status:integer
+npx sequelize-cli model:generate --name mdaPlanOverview --attributes uid:string,planid:string,content:string,title:string,helpful:integer
 
 # 计划完成后情况分析
-npx sequelize-cli model:generate --name mdaPlanReview --attributes uid:string,overviewid:string,tags:string,content:string,comment:string,helpful:integer
+npx sequelize-cli model:generate --name mdaPlanReview --attributes uid:string,planid:string,tags:string,content:string,comment:string,helpful:integer
 
 # 每日计划打卡
-npx sequelize-cli model:generate --name mdaPlanRecord --attributes uid:string,overviewid:string,diet:string,sleep:string,medical:string,memo:string,status:integer
+npx sequelize-cli model:generate --name mdaPlanRecord --attributes uid:string,planid:string,diet:string,sleep:string,medical:string,memo:string,status:integer
 
 # ai 生成每日计划、资讯
-npx sequelize-cli model:generate --name mdaPlanRecordAna --attributes uid:string,overviewid:string,newsid:string,summary:string,helpful:integer,genAt:date
+npx sequelize-cli model:generate --name mdaPlanRecordAna --attributes uid:string,recordid:string,newsid:string,content:string,helpful:integer,genAt:date
 
 # 资讯
 npx sequelize-cli model:generate --name mdaNews --attributes uid:string,content:string,tags:string,source:string,genAt:date

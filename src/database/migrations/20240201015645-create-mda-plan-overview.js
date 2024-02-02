@@ -12,22 +12,16 @@ module.exports = {
       uid: {
         type: Sequelize.STRING
       },
-      summary: {
+      planid: {
+        type: Sequelize.STRING
+      },
+      content: {
         type: Sequelize.STRING
       },
       title: {
         type: Sequelize.STRING
       },
-      target: {
-        type: Sequelize.STRING
-      },
-      cycle: {
-        type: Sequelize.STRING
-      },
       helpful: {
-        type: Sequelize.INTEGER
-      },
-      status: {
         type: Sequelize.INTEGER
       },
       createdAt: {

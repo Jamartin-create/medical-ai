@@ -3,6 +3,7 @@ import { AppRouter } from 'mduash/lib/decorators'
 import './modules/user/controller'
 import './modules/case/controller'
 import './modules/chat/controller'
+import './modules/plan/controller'
 import jwt from '../plugin/jwt'
 
 const routes = Router()

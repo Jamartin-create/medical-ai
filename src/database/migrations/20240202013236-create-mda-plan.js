@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('mdaPlanRecordAnas', {
+    await queryInterface.createTable('mdaPlans', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -12,19 +12,25 @@ module.exports = {
       uid: {
         type: Sequelize.STRING
       },
-      recordid: {
+      userid: {
         type: Sequelize.STRING
       },
-      newsid: {
-        type: Sequelize.STRING
-      },
-      content: {
-        type: Sequelize.STRING
-      },
-      helpful: {
+      type: {
         type: Sequelize.INTEGER
       },
-      genAt: {
+      caseid: {
+        type: Sequelize.STRING
+      },
+      target: {
+        type: Sequelize.STRING
+      },
+      cycle: {
+        type: Sequelize.STRING
+      },
+      startAt: {
+        type: Sequelize.DATE
+      },
+      endAt: {
         type: Sequelize.DATE
       },
       createdAt: {
@@ -36,6 +42,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('mdaPlanRecordAnas');
+    await queryInterface.dropTable('mdaPlans');
   }
 };
