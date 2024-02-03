@@ -22,8 +22,7 @@ export class CaseInfo {
     @Put('/create')
     async keeponChat(req: Request, res: Response, next: NextFunction) {
         try {
-            await ChatService.keeponChat(req.body)
-            res.send(SuccessRes('success'))
+            await ChatService.keeponChat(req.body, res)
         } catch (e) {
             next(e)
         }

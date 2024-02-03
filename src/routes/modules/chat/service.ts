@@ -4,6 +4,8 @@ import ChatAnaModel from '../../../database/models/mdaqareview'
 import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
 import { ErrorCode } from '../../../utils/exceptions'
+import { MessageT, getAnswer } from '../../../utils/aiModel'
+import { Response } from 'express'
 
 const Chat = ChatModel(sequelize, DataTypes)
 const ChatAna = ChatAnaModel(sequelize, DataTypes)
@@ -43,23 +45,30 @@ export default class ChatService {
     static async createChat(data: any) {
         const { auth } = data
         await ChatDao.insertOne({ userid: auth.uid, startAt: new Date().getTime() })
-        // TODO：同样在 AI 应用中也创建一个聊天
     }
 
     // 续写对话
-    static async keeponChat(data: any) {
+    static async keeponChat(data: any, res: Response) {
         const { uid, content } = data
         if(!uid || !content) throw ErrorCode.PARAMS_MISS_ERROR
         const chatRecord = await Chat.findOne({ where: { uid } })
         if (!chatRecord) throw ErrorCode.NOT_FOUND_CHAT_ERROR
+
+        const oldDetail = chatRecord.dataValues.chatDetail
+
+        const detail: MessageT[] = oldDetail ? JSON.parse(oldDetail) : []
+        detail.push({ role: 'user', content })
+        
+        const result = await getAnswer(res, detail)
+        detail.push({role: 'assistant', content: result})
+
         const updData = {
             uid,
-            chatDetail: chatRecord.dataValues.chateDetail + content,
+            chatDetail: JSON.stringify(detail),
             chatcount: chatRecord.dataValues.cahtcount + 1
         }
-        await ChatDao.updateOne(updData)
 
-        // TODO：接通 Ai 应用续写聊天
+        await ChatDao.updateOne(updData)
     }
 
     // 结束对话
@@ -88,6 +97,7 @@ export default class ChatService {
         const chatAna = await ChatAna.findOne({ where: { recordid: uid } })
         const chat = await Chat.findOne({ where: { uid } })
         if (!chat) throw ErrorCode.NOT_FOUND_CHAT_ERROR
+        if (chat.dataValues.chatDetail) chat.dataValues.chatDetail = JSON.parse(chat.dataValues.chatDetail)
         if (chatAna) chat.dataValues.chatAna = chatAna.dataValues
         return chat.dataValues
     }
