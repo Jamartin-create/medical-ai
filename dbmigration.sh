@@ -1,5 +1,5 @@
 # 用户
-npx sequelize-cli model:generate --name mdaUser --attributes uid:string,username:string,password:string,avatar:string,realname:string,age:integer,tel:string,email:string,status:integer
+npx sequelize-cli model:generate --name mdaUser --attributes uid:string,username:string,password:string,avatar:string,realname:string,age:integer,gender:integer,tel:string,email:string,status:integer
 
 # 问答记录（msgid 可能需要连 mongodb，待定……）
 npx sequelize-cli model:generate --name mdaQaRecord --attributes uid:string,userid:string,chatDetail:string,chatcount:integer,startAt:date,endAt:date

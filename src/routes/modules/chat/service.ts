@@ -6,6 +6,7 @@ import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
 import { ErrorCode } from '../../../utils/exceptions'
 import { MessageT, getAnswer } from '../../../utils/aiModel'
 import { Response } from 'express'
+import Prompts, { defaultPrompts } from '../prompts'
 
 const Chat = ChatModel(sequelize, DataTypes)
 const ChatAna = ChatAnaModel(sequelize, DataTypes)
@@ -42,33 +43,43 @@ export const ChatAnaDao = {
 
 export default class ChatService {
     // 创建对话
-    static async createChat(data: any) {
+    static async createChat(data: any, res: Response) {
         const { auth } = data
-        await ChatDao.insertOne({ userid: auth.uid, startAt: new Date().getTime() })
+
+        // 创建一个聊天，先将角色预设好
+        const aiAnswer = await getAnswer(
+            res,
+            Prompts.getChatCharacter(await defaultPrompts(auth.uid))
+        )
+        
+        const chatDetail: MessageT[] = [{role: 'assistant', content: aiAnswer}]
+
+        await ChatDao.insertOne({ userid: auth.uid, chatDetail, chatCount: 1, startAt: new Date().getTime() })
     }
 
     // 续写对话
     static async keeponChat(data: any, res: Response) {
         const { uid, content } = data
-        if(!uid || !content) throw ErrorCode.PARAMS_MISS_ERROR
+        if (!uid || !content) throw ErrorCode.PARAMS_MISS_ERROR
         const chatRecord = await Chat.findOne({ where: { uid } })
         if (!chatRecord) throw ErrorCode.NOT_FOUND_CHAT_ERROR
-
         const oldDetail = chatRecord.dataValues.chatDetail
 
+        // 获取旧记录
         const detail: MessageT[] = oldDetail ? JSON.parse(oldDetail) : []
+
+        // 拼接用户消息
         detail.push({ role: 'user', content })
         
+        // 获取 ai 的回答并拼接在记录中
         const result = await getAnswer(res, detail)
         detail.push({role: 'assistant', content: result})
 
-        const updData = {
+        await ChatDao.updateOne({
             uid,
             chatDetail: JSON.stringify(detail),
             chatcount: chatRecord.dataValues.cahtcount + 1
-        }
-
-        await ChatDao.updateOne(updData)
+        })
     }
 
     // 结束对话

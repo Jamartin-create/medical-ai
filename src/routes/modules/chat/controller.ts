@@ -11,8 +11,7 @@ export class CaseInfo {
     async createChat(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            await ChatService.createChat({ auth })
-            res.send(SuccessRes('success'))
+            await ChatService.createChat({ auth }, res)
         } catch (e) {
             next(e)
         }

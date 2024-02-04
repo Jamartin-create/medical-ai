@@ -8,6 +8,7 @@ const API = 'http://localhost:3461'
 export type MessageT = {
     role: string;
     content: string;
+    ignore?: boolean
 }
 
 // 获取 token
@@ -36,11 +37,9 @@ export async function getAnswer(res: Response, messages: MessageT[]): Promise<st
             } else if (chunkRes.indexOf('data: ') === -1) {
                 console.log('补充数据')
                 temp += chunkRes
-                chunkRes = `${temp.replace(/^\s*[\r\n]/gm, '')}
-                `
+                chunkRes = `${temp.replace(/^\s*[\r\n]/gm, '')}`
                 temp = ''
             }
-            console.log(chunkRes)
             // 利用字符串处理方法提取JSON数据部分
             const dataJson: any = JSON.parse(chunkRes.substring(chunkRes.indexOf('{'), chunkRes.lastIndexOf('}') + 1));
             ret += dataJson.result

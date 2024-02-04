@@ -31,6 +31,14 @@ export const CaseDao = {
                 { where: { uid: data.uid }, transaction: tran }
             )
         })
+    },
+    // 获取一条数据
+    async selectOne(data: any) {
+        return await Case.findOne({ where: data.wrp, ...data.options })
+    },
+    // 获取多条数据
+    async selectList(data: any) {
+        return await Case.findAll({ where: data.wrp, ...data.options })
     }
 }
 

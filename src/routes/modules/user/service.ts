@@ -5,8 +5,19 @@ import { ErrorCode } from '../../../utils/exceptions'
 import { md5Pwd } from '../../../utils/tools'
 import jwt from '../../../plugin/jwt'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
+import { CaseDao } from '../case/service'
 
 const User = UserModel(sequelize, DataTypes)
+
+export type UserHealthInfo = {
+    gender: number;
+    age: number;
+    medical: any[];
+    mdHistory: any[];
+    toString: () => string;
+}
+
+
 
 User.addHook('beforeCreate', (userModel, options) => {
     console.log(userModel, options)
@@ -52,19 +63,19 @@ export default class UserService {
     static async login(data: any) {
         // TODO: 邮箱登录
         const { username, password, staystatus } = data
-        if(!username || !password) throw ErrorCode.PARAMS_MISS_ERROR
+        if (!username || !password) throw ErrorCode.PARAMS_MISS_ERROR
         const user = await User.findOne({ where: { username } })
         if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR
         if (user.dataValues.password != md5Pwd(password)) throw ErrorCode.AUTH_PWD_ERROR
         const options: any = {}
         // 选择了保持登录状态则延长至一个月
         if (staystatus) options.expiresIn = '720h'
-        return jwt.sign({uid: user.dataValues.uid}, options)
+        return jwt.sign({ uid: user.dataValues.uid }, options)
     }
 
     // 获取用户信息
     static async getInfo(uid: string) {
-        const user = await User.findOne({ where: { uid }, attributes: {exclude: ['password']} })
+        const user = await User.findOne({ where: { uid }, attributes: { exclude: ['password'] } })
         if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR;
         return user
     }
@@ -72,7 +83,7 @@ export default class UserService {
     // 编辑信息
     static async editInfo(data: any) {
         Object.keys(data).forEach(key => {
-            if(['password', 'username', 'email', 'status'].includes(key)) delete data[key]
+            if (['password', 'username', 'email', 'status'].includes(key)) delete data[key]
         })
         await UserDAO.updateOne(data)
     }
@@ -86,5 +97,39 @@ export default class UserService {
         if (user.dataValues.password !== md5Pwd(oldPwd)) throw ErrorCode.AUTH_PWD_ERROR
         await UserDAO.updateOne({ uid, password: newPwd })
         return
+    }
+
+    // 获取用户健康情况
+    static async getUserHealth(uid: string): Promise<UserHealthInfo> {
+        const user = await User.findOne({ where: { uid } })
+        const cases = await CaseDao.selectList({
+            wrp: { userid: uid },
+            options: {  attributes: { include: ['medical', 'mdHistory', 'curSituation'] } }
+        })
+        if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR
+
+        // 收集用户信息
+        const userInfo: UserHealthInfo = {
+            gender: user.dataValues.gender,
+            age: user.dataValues.age,
+            medical: [],
+            mdHistory: [],
+            toString: function () {
+                const { gender, age, medical, mdHistory } = this
+                return `${gender === 1 ? '男' : '女'},${age}岁;用药史:${medical.join(',')};病史:${mdHistory.join(',')}`
+            }
+        }
+
+        // 填充案例
+        if (cases) {
+            cases.forEach((item) => {
+                const userDetail = item.dataValues
+                userDetail.medical && userInfo.medical.push(userDetail.medical)
+                userDetail.mdHistory && userInfo.mdHistory.push(userDetail.mdHistory)
+            })
+        }
+
+        return userInfo
+
     }
 }
