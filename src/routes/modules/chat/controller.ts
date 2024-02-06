@@ -30,8 +30,8 @@ export class CaseInfo {
     @Put('/leave')
     async leaveChat(req: Request, res: Response, next: NextFunction) {
         try {
-            await ChatService.leaveChat(req.body)
-            res.send(SuccessRes('success'))
+            await ChatService.leaveChat(req.body, res)
+            // res.send(SuccessRes('success'))
         } catch (e) {
             next(e)
         }

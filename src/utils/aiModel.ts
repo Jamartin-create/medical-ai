@@ -3,6 +3,15 @@ import axios from "axios";
 import { Response } from "express";
 import { ErrorCode } from "./exceptions";
 
+const eventStreamDataTrans = (es: string) => { 
+    const eventIdx = es.indexOf('event: ')
+    const dataIdx = es.indexOf('data: ')
+    return {
+        event: es.slice(eventIdx + 7, dataIdx),
+        data: es.slice(es.indexOf('{'), es.lastIndexOf('}') + 1)
+    }
+}
+
 const API = 'http://localhost:3461'
 
 export type MessageT = {
@@ -26,24 +35,15 @@ export async function getAnswer(res: Response, messages: MessageT[]): Promise<st
         const response = await axios.post(`${API}/ai/v1/chat/create/`, { messages }, { responseType: 'stream' })
         const chunkRequest = response.data
         let ret: string = ''
-        let temp: string = ''
         chunkRequest.on('data', (chunk: Buffer) => {
             let chunkRes: string = chunk.toString()
-            // 判断数据是否被截断
-            if (chunkRes.indexOf('data: ') !== chunkRes.lastIndexOf('data: ')) {
-                console.log('数据被截断了')
-                temp = chunkRes.slice(chunkRes.lastIndexOf('data: '))
-                chunkRes = chunkRes.slice(chunkRes.indexOf('data: '), chunkRes.lastIndexOf('data: '))
-            } else if (chunkRes.indexOf('data: ') === -1) {
-                console.log('补充数据')
-                temp += chunkRes
-                chunkRes = `${temp.replace(/^\s*[\r\n]/gm, '')}`
-                temp = ''
-            }
+            console.log(chunkRes)
+            const data = eventStreamDataTrans(chunkRes)
+            if(!data.data) return
             // 利用字符串处理方法提取JSON数据部分
-            const dataJson: any = JSON.parse(chunkRes.substring(chunkRes.indexOf('{'), chunkRes.lastIndexOf('}') + 1));
+            const dataJson: any = JSON.parse(data.data);
             ret += dataJson.result
-            res.write(chunkRes)
+            res.write(`event: message\ndata: ${data.data}\n\n`)
         })
         chunkRequest.on('end', () => {
             resolve(ret)

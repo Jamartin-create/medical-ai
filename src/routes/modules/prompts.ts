@@ -1,9 +1,12 @@
 /** @description 生成提示词脚本 */
 
-import { MessageT } from "../../utils/aiModel"
+import { Response } from "express"
+import { MessageT, getAnswer } from "../../utils/aiModel"
+import { ChatDao } from "./chat/service"
 import UserService from "./user/service"
+import { ErrorCode } from "../../utils/exceptions"
 
-
+// 提示词组成
 type PromptT = {
     character: string, // 人设
     summary: string, // 描述
@@ -11,9 +14,11 @@ type PromptT = {
     cordon?: string // 警戒线
 }
 
+// 生成针对特定病人的身体情况而定的医生人设 prompts
 export const defaultPrompts = async (uid: string): Promise<PromptT> => {
 
     const info = await UserService.getUserHealth(uid)
+    if (!info) throw ErrorCode.NOT_FOUND_USER_ERROR
     
     return {
         character: "门诊医生",
@@ -31,20 +36,64 @@ export const defaultPrompts = async (uid: string): Promise<PromptT> => {
     }
 }
 
-/** @description 立人设 */
+/** @description 立人设，对话用 */
 function getChatCharacter(prompts: PromptT): MessageT[] {
     const messages: MessageT[] = []
     const prompt = `
         我想让你扮演${prompts.character}的角色，
         ${prompts.summary}。
         ${prompts.preface}。
-        ${prompts.cordon}
+        ${prompts.cordon || ''}
     `
     messages.push({ role: 'user', content: prompt, ignore: true })
     return messages
 }
 
-/** @description 对话结果分析 */
+// 对话总结
+type RecordReviewT = {
+    tags: string[]; // 关键词
+    content: string; // 大 Json
+}
+
+export const defaultReviewGenPrompt = async (recordid: string): Promise<PromptT> => {
+
+    const record = await ChatDao.selectOne({
+        wrp: { uid: recordid },
+        options: { attributes: { include: ['chatDetail'] } }
+    })
+
+    if (!record) throw ErrorCode.NOT_FOUND_CHAT_ERROR;
+    
+    // a. 患者是来看病的：医生针对患者的描述判断患者所患疾病，
+    // b. 患者是来复查的：
+    return {
+        character: '助理医生',
+        summary: `
+            作为助理医生，你的工作是记录医生与患者的对话，并针对这段对话进行分析，分析的结果分两部分：
+            1. 关键词：本次对话产生的关键信息，并将其简化成单词，记录下来。
+            2. 对话复盘：帮助医生与患者总结刚刚的对话。
+        `,
+        preface: `
+            本次的对话内容为: ${record.dataValues.chatDetail}；以上为本次医生和患者的对话详情，请开始分析。
+            请注意！输出只需要输出一个 json 即可，包含两个字段: tags 和 content
+            tags 即为关键词; content 则是分析的结果（请输出代码块）
+        `
+    }
+}
+
+/** @description 对话结果分析，对话结束用 */
+async function getChatRecordReview(prompts: PromptT, res: Response): Promise<RecordReviewT> {
+    const response: string = await getAnswer(res, getChatCharacter(prompts))
+    
+    console.log('分析结果', response)
+    const { tags, content } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+
+    return {
+        tags: tags.join(','),
+        content
+    }
+
+}
 
 /** @description 计划总览生成 */
 
@@ -56,5 +105,6 @@ function getChatCharacter(prompts: PromptT): MessageT[] {
 
 /** @description 预设 Prompt */
 export default {
-    getChatCharacter
+    getChatCharacter,
+    getChatRecordReview
 }

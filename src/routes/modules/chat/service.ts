@@ -6,7 +6,7 @@ import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
 import { ErrorCode } from '../../../utils/exceptions'
 import { MessageT, getAnswer } from '../../../utils/aiModel'
 import { Response } from 'express'
-import Prompts, { defaultPrompts } from '../prompts'
+import Prompts, { defaultPrompts, defaultReviewGenPrompt } from '../prompts'
 
 const Chat = ChatModel(sequelize, DataTypes)
 const ChatAna = ChatAnaModel(sequelize, DataTypes)
@@ -27,6 +27,14 @@ export const ChatDao = {
                 { where: { uid: data.uid }, transaction: tran }
             )
         })
+    },
+    // 获取一条数据
+    async selectOne(data: any) {
+        return await Chat.findOne({ where: data.wrp, ...data.options })
+    },
+    // 获取多条数据
+    async selectList(data: any) {
+        return await Chat.findAll({ where: data.wrp, ...data.options })
     }
 }
 
@@ -47,14 +55,12 @@ export default class ChatService {
         const { auth } = data
 
         // 创建一个聊天，先将角色预设好
-        const aiAnswer = await getAnswer(
-            res,
-            Prompts.getChatCharacter(await defaultPrompts(auth.uid))
-        )
-        
-        const chatDetail: MessageT[] = [{role: 'assistant', content: aiAnswer}]
+        const chatDetails: MessageT[] = Prompts.getChatCharacter(await defaultPrompts(auth.uid))
+        // 帮助 大语言模型 立人设
+        const aiAnswer = await getAnswer(res, chatDetails)
+        chatDetails.push({ role: 'assistant', content: aiAnswer })
 
-        await ChatDao.insertOne({ userid: auth.uid, chatDetail, chatCount: 1, startAt: new Date().getTime() })
+        await ChatDao.insertOne({ userid: auth.uid, chatDetail: JSON.stringify(chatDetails), chatcount: 1, startAt: new Date().getTime() })
     }
 
     // 续写对话
@@ -78,20 +84,21 @@ export default class ChatService {
         await ChatDao.updateOne({
             uid,
             chatDetail: JSON.stringify(detail),
-            chatcount: chatRecord.dataValues.cahtcount + 1
+            chatcount: (chatRecord.dataValues.cahtcount || 0) + 1
         })
     }
 
     // 结束对话
-    static async leaveChat(data: any) {
+    static async leaveChat(data: any, res: Response) {
         const { uid } = data
         if(!uid) throw ErrorCode.PARAMS_MISS_ERROR
         const chatRecord = await Chat.findOne({ where: { uid } })
         if (!chatRecord) throw ErrorCode.NOT_FOUND_CHAT_ERROR
         await ChatDao.updateOne({ uid, endAt: new Date().getTime() })
 
-        // TODO：对话结束，开始进行 Ai 分析
-        ChatAnaDao.insert({ tags: '测试', content: '111', recordid: uid })
+        // 对话结束，开始进行 Ai 分析
+        const result = await Prompts.getChatRecordReview(await defaultReviewGenPrompt(uid), res)
+        ChatAnaDao.insert({ ...result, recordid: uid })
     }
 
     // 对话记录获取

@@ -13,6 +13,7 @@ export const ErrorCode = {
   NOT_FOUND_CHAT_ERROR: generatorMError(30004, '未找到对话'),
   NOT_FOUND_PLAN_ERROR: generatorMError(30005, '未找到计划'),
   NOT_FOUND_PLAN_RECORD_ERROR: generatorMError(30005, '未找到打卡记录'),
+  AI_GEN_RECORD_REVIEW_ERROR: generatorMError(40001, '生成对话总结失败'),
   EXCUTE_ERROR: generatorMError(99999, '执行异常')
 }
 
