@@ -7,12 +7,19 @@ import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { DataTypes } from 'sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
+import Prompts, { defaultPlanOverviewGenPrompt } from '../prompts'
 
 const Plan = PlanModel(sequelize, DataTypes)
 const PlanRecord = PlanRecordModel(sequelize, DataTypes)
 const PlanRecordAna = PlanRecordAnaModel(sequelize, DataTypes)
 const PlanOverview = PlanOverviewModel(sequelize, DataTypes)
 const PlanReview = PlanReviewModel(sequelize, DataTypes)
+
+export type TargetInfoT = {
+    cycle: string; // 周期
+    target: string; // 目标
+    toString: () => string;
+}
 
 PlanRecord.addHook('beforeCreate', (model, _) => {
     model.dataValues.status = 0 // 默认是正常状态 0=进行中，1=已结束，2=已中断
@@ -37,6 +44,14 @@ function BaseDao(model: BaseModelT) {
                     { where: { uid: data.uid, ...wrapper }, transaction: tran }
                 )
             })
+        },
+        // 获取一条数据
+        async selectOne(data: any) {
+            return await model.findOne({ where: data.wrp, ...data.options })
+        },
+        // 获取多条数据
+        async selectList(data: any) {
+            return await model.findAll({ where: data.wrp, ...data.options })
         }
     }
 }
@@ -48,7 +63,7 @@ const PlanOverviewDao = BaseDao(PlanOverview)
 const PlanReviewDao = BaseDao(PlanReview)
 
 
-export default class UserService {
+export default class PlanService {
     // 新建计划
     static async createPlan(data: any) {
         const { auth, ...others } = data
@@ -81,7 +96,11 @@ export default class UserService {
     // ai 创建计划大纲
     static async genPlanOverview(userid: string, planid: string) {
         console.log(`user: ${userid}, plan: ${planid} 生成记录`)
-        await PlanOverviewDao.insertOne({ planid, content: "测试", title: "测试标题" })
+
+        // TODO：获取用户的病史加入分析过程
+        const detail = await Prompts.getChatPlanOverview(await defaultPlanOverviewGenPrompt(planid))
+
+        await PlanOverviewDao.insertOne({ planid, ...detail })
     }
 
     // ai 对计划完成情况进行复盘
@@ -139,4 +158,31 @@ export default class UserService {
         return await PlanReview.findOne({ where: { planid } })
     }
 
+
+    // 获取计划目标（给生成 prompt 用）
+    static async genPlanTarget(planid: string): Promise<TargetInfoT> {
+
+        const plan = await PlanDao.selectOne({ wrp: { uid: planid } })
+        
+        if (!plan) throw ErrorCode.NOT_FOUND_PLAN_ERROR
+
+        const planValue = plan.dataValues
+
+        const target = planValue.target
+        const cycle = planValue.cycle
+
+        // 明确是康复计划还是养生计划
+        let type = planValue.type === 1 ? '养生' : '康复'
+
+        const targetInfo: TargetInfoT = {
+            target: target,
+            cycle: cycle,
+            toString: function() {
+                const { cycle, target } = this
+                return `此次${type}目标：${target}，期望${type}疗程（周期）：${cycle}`
+            }
+        }
+
+        return targetInfo
+    }
 }

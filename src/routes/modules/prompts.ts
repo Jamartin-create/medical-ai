@@ -1,10 +1,24 @@
 /** @description 生成提示词脚本 */
 
 import { Response } from "express"
-import { MessageT, getAnswer } from "../../utils/aiModel"
+import { MessageT, getAnswer, getAnswerWithStream } from "../../utils/aiModel"
 import { ChatDao } from "./chat/service"
 import UserService from "./user/service"
 import { ErrorCode } from "../../utils/exceptions"
+import PlanService from "./plan/service"
+
+/** @description 立人设，对话用 */
+function getChatCharacter(prompts: PromptT): MessageT[] {
+    const messages: MessageT[] = []
+    const prompt = `
+        我想让你扮演${prompts.character}的角色，
+        ${prompts.summary}。
+        ${prompts.preface}。
+        ${prompts.cordon || ''}
+    `
+    messages.push({ role: 'user', content: prompt, ignore: true })
+    return messages
+}
 
 // 提示词组成
 type PromptT = {
@@ -12,6 +26,18 @@ type PromptT = {
     summary: string, // 描述
     preface?: string, // 前言
     cordon?: string // 警戒线
+}
+
+// 对话总结
+type RecordReviewT = {
+    tags: string[]; // 关键词
+    content: string; // 大 Json
+}
+
+// 计划总览
+type OverviewT = {
+    title: string;
+    content: string;
 }
 
 // 生成针对特定病人的身体情况而定的医生人设 prompts
@@ -36,25 +62,7 @@ export const defaultPrompts = async (uid: string): Promise<PromptT> => {
     }
 }
 
-/** @description 立人设，对话用 */
-function getChatCharacter(prompts: PromptT): MessageT[] {
-    const messages: MessageT[] = []
-    const prompt = `
-        我想让你扮演${prompts.character}的角色，
-        ${prompts.summary}。
-        ${prompts.preface}。
-        ${prompts.cordon || ''}
-    `
-    messages.push({ role: 'user', content: prompt, ignore: true })
-    return messages
-}
-
-// 对话总结
-type RecordReviewT = {
-    tags: string[]; // 关键词
-    content: string; // 大 Json
-}
-
+// 分析对话结果提示词
 export const defaultReviewGenPrompt = async (recordid: string): Promise<PromptT> => {
 
     const record = await ChatDao.selectOne({
@@ -81,6 +89,31 @@ export const defaultReviewGenPrompt = async (recordid: string): Promise<PromptT>
     }
 }
 
+// 生成计划总览提示词
+export const defaultPlanOverviewGenPrompt = async (planid: string): Promise<PromptT> => {
+    
+    const planOverview = await PlanService.genPlanTarget(planid)
+
+    return {
+        character: '康复医疗师',
+        summary: `
+            作为康复医疗师，你的工作是针对患者的目标，患者会告诉你其想要治疗的周期，以及其想要达到的效果
+            你需要根据它的描述为其制定比较符合其期望的计划。
+        `,
+        preface: `
+            以下是本次患者提出的规划期望：${planOverview.toString()}。请开始分析
+            请注意！输出时只需要输出一个 json 即可，包含两个字段：title, content
+                1. title 为本次计划的主题
+                2. content 也是一个 json, 包含三个字段: summary, cycle, detail
+                    a. summary: 针对生成计划的一个描述，如果生成的 周期 和患者期望的 周期 不一样需要解释一下原因
+                    b. cycle: 疗程（周期）
+                    c. detail: 一个数组, 包含大致的治疗阶段（第一个疗程、第二个疗程、第三个疗程……）,数组数据结构为：
+                        a. tm: 阶段定义
+                        b. plan: 阶段疗程内容（这个疗程要做的事情）
+        `
+    }
+}
+
 /** @description 对话结果分析，对话结束用 */
 async function getChatRecordReview(prompts: PromptT, res: Response): Promise<RecordReviewT> {
     const response: string = await getAnswer(res, getChatCharacter(prompts))
@@ -88,14 +121,21 @@ async function getChatRecordReview(prompts: PromptT, res: Response): Promise<Rec
     console.log('分析结果', response)
     const { tags, content } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
 
-    return {
-        tags: tags.join(','),
-        content
-    }
+    return { tags: tags.join(','), content }
 
 }
 
 /** @description 计划总览生成 */
+async function getChatPlanOverview(prompts: PromptT): Promise<OverviewT> {
+
+    const data = await getAnswerWithStream(getChatCharacter(prompts));
+    const response = data.data
+    console.log('计划总览', response)
+
+    const { title, content } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+
+    return { title, content: JSON.stringify(content) }
+}
 
 /** @description 每日计划生成 */
 
@@ -106,5 +146,6 @@ async function getChatRecordReview(prompts: PromptT, res: Response): Promise<Rec
 /** @description 预设 Prompt */
 export default {
     getChatCharacter,
-    getChatRecordReview
+    getChatRecordReview,
+    getChatPlanOverview
 }

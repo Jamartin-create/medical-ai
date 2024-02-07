@@ -1,5 +1,5 @@
 /** @description 用于连接 AI 模型 */
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { Response } from "express";
 import { ErrorCode } from "./exceptions";
 
@@ -57,6 +57,6 @@ export async function getAnswer(res: Response, messages: MessageT[]): Promise<st
 }
 
 // 普通请求
-export async function getAnswerWithStream(messages: MessageT[]) {
+export async function getAnswerWithStream(messages: MessageT[]): Promise<AxiosResponse> {
     return await axios.post(`${API}/ai/v1/chat/createWithNoStream`, { messages })
 }
