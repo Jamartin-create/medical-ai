@@ -40,6 +40,12 @@ type OverviewT = {
     content: string;
 }
 
+// 计划复盘
+type PlanReviewT = {
+    content: any;
+    tags: string;
+}
+
 // 生成针对特定病人的身体情况而定的医生人设 prompts
 export const defaultPrompts = async (uid: string): Promise<PromptT> => {
 
@@ -114,6 +120,29 @@ export const defaultPlanOverviewGenPrompt = async (planid: string): Promise<Prom
     }
 }
 
+// 对计划完成情况进行复盘
+export const deafultPlanReviewGenPrompt = async (planid: string): Promise<PromptT> => {
+    const planReview = await PlanService.genPlanReviewPrompts(planid)
+    return {
+        character: '康复医疗师',
+        summary: `
+            作为康复医疗师，你的工作是：
+            先针对患者自己的目标加上你之前为其制定的计划大纲以及其每日打卡状态判断患者的计划是否成功完成
+            再根据患者自我描述分析一下患者的身体状态
+            最后再做一个简单的复盘，以及患者后续需要注意的事情
+            此外，你还需要提取本次康复过程的一些关键词（这里可以是从对话中截取，也可以通过分析生成复合条件的关键词）
+        `,
+        preface: `
+            以下是本次患者的目标及打卡记录：${planReview}。请开始分析
+            请注意！输出时只需要输出一个 json 即可， 包含三个字段：status, healthInfo, content
+                1. status: 布尔值 - 表示是否完成，完成则输出 true，反之输出 false
+                2. healthInfo: 患者的身体状态，告诉患者其目前身体状态是好还是不好，并说明原因
+                3. content: 最终的复盘以及患者的后续注意事项
+                4. tags: 对话复盘过程中生成的一些关键词
+        `
+    }
+}
+
 /** @description 对话结果分析，对话结束用 */
 async function getChatRecordReview(prompts: PromptT, res: Response): Promise<RecordReviewT> {
     const response: string = await getAnswer(res, getChatCharacter(prompts))
@@ -140,6 +169,16 @@ async function getChatPlanOverview(prompts: PromptT): Promise<OverviewT> {
 /** @description 每日计划生成 */
 
 /** @description 计划复盘生成 */
+async function getPlanReview(prompts: PromptT): Promise<PlanReviewT> {
+
+    const data = await getAnswerWithStream(getChatCharacter(prompts))
+
+    const response = data.data
+
+    const { status, healthInfo, content, tags } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+
+    return { tags: tags.join(","), content: JSON.stringify({ status, content, healthInfo }) }
+}
 
 /** @description 病情分析 */
 
@@ -147,5 +186,6 @@ async function getChatPlanOverview(prompts: PromptT): Promise<OverviewT> {
 export default {
     getChatCharacter,
     getChatRecordReview,
-    getChatPlanOverview
+    getChatPlanOverview,
+    getPlanReview
 }

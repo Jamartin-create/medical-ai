@@ -7,7 +7,7 @@ import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { DataTypes } from 'sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
-import Prompts, { defaultPlanOverviewGenPrompt } from '../prompts'
+import Prompts, { deafultPlanReviewGenPrompt, defaultPlanOverviewGenPrompt } from '../prompts'
 
 const Plan = PlanModel(sequelize, DataTypes)
 const PlanRecord = PlanRecordModel(sequelize, DataTypes)
@@ -18,6 +18,10 @@ const PlanReview = PlanReviewModel(sequelize, DataTypes)
 export type TargetInfoT = {
     cycle: string; // 周期
     target: string; // 目标
+    toString: () => string;
+}
+
+export type ReviewInfoT = {
     toString: () => string;
 }
 
@@ -106,7 +110,10 @@ export default class PlanService {
     // ai 对计划完成情况进行复盘
     static async genPlanReview(planid: string) {
         console.log(`plan: ${planid}`)
-        await PlanReviewDao.insertOne({ planid, tags: "肾结石,腰间盘突出", content: "测试内容" })
+
+        const { tags, content } = await Prompts.getPlanReview(await deafultPlanReviewGenPrompt(planid))
+
+        await PlanReviewDao.insertOne({ planid, tags, content})
     }
 
     // ai 生成每日计划及资讯
@@ -155,6 +162,7 @@ export default class PlanService {
     // 获取计划总结
     static async getPlanReview(data: any) {
         const { planid } = data
+
         return await PlanReview.findOne({ where: { planid } })
     }
 
@@ -184,5 +192,25 @@ export default class PlanService {
         }
 
         return targetInfo
+    }
+
+    // 获取计划复盘内容
+    static async genPlanReviewPrompts(planid: string): Promise<string> {
+
+        const plan = await PlanDao.selectOne({ wrp: { uid: planid } })
+        const planRecords = await PlanRecordDao.selectList({ wrp: { planid } })
+        // TODO: 获取每日计划复盘的内容
+        if (!plan) throw ErrorCode.NOT_FOUND_PLAN_ERROR
+
+        const { dataValues } = plan
+        const recordCount = planRecords.length
+        
+        return `
+            类型：${dataValues.type === 1 ? '养生' : '康复'}
+            目标：${dataValues.target}
+            期望完成周期：${dataValues.cycle}       
+            真实打卡天数：${recordCount}
+            每日打卡信息：${planRecords.map(({ dataValues: record }) => `日期：${record.createAt};睡眠：${record.sleep};用药：${record.medical};饮食：${record.diet}\n`)}
+        `
     }
 }
