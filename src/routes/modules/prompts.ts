@@ -6,6 +6,7 @@ import { ChatDao } from "./chat/service"
 import UserService from "./user/service"
 import { ErrorCode } from "../../utils/exceptions"
 import PlanService from "./plan/service"
+import CaseService from "./case/service"
 
 /** @description 立人设，对话用 */
 function getChatCharacter(prompts: PromptT): MessageT[] {
@@ -143,6 +144,30 @@ export const deafultPlanReviewGenPrompt = async (planid: string): Promise<Prompt
     }
 }
 
+// TODO: 每日打卡分析以及相关资讯
+
+// 病情分析
+export const defaultCaseAnalizePrompt = async (caseid: string): Promise<PromptT> => {
+    const caseInfo = await CaseService.genCaseIntro(caseid)
+
+    return {
+        character: '国内顶尖的急诊科门诊医师主任',
+        summary: `
+            作为一名国内顶尖的急诊科门诊医师主任，你需要快速的对患者的病例进行分析
+            1. 如果可以明确判断出患者所患疾病，则给患者提供一些修养建议
+            2. 如果不能明确判断，则告诉患者可能的疾病，以及其可能的病因，同事还需要告知患者去进一步筛查的相关流程
+        `,
+        preface: `
+            以下是本次患者提供的描述信息：${caseInfo}。请开始分析
+            请注意！输出时只需要输出一个 json 即可，包含三个字段：type, advice, diseases, reasons
+                1. type: 如果可以明确判断患者所患疾病则值为 0，否则为 1
+                2. advice: 如果 type 为 0，则该值为给患者的一些建议，返回一个字符串数组；如果 type 为 1 则该值为 null
+                3. diseases: 如果 type 为 1，则该值为患者可能患的疾病，返回一个字符串数组；如果 type 为 0 则该值为 null
+                4. reasons：无论 type 为 1 还是 0，该值均为一个字符串数组，对应之前分析出来的疾病，生成对应的病因
+        `
+    }
+}
+
 /** @description 对话结果分析，对话结束用 */
 async function getChatRecordReview(prompts: PromptT, res: Response): Promise<RecordReviewT> {
     const response: string = await getAnswer(res, getChatCharacter(prompts))
@@ -157,8 +182,8 @@ async function getChatRecordReview(prompts: PromptT, res: Response): Promise<Rec
 /** @description 计划总览生成 */
 async function getChatPlanOverview(prompts: PromptT): Promise<OverviewT> {
 
-    const data = await getAnswerWithStream(getChatCharacter(prompts));
-    const response = data.data
+    const response = await getAnswerWithStream(getChatCharacter(prompts));
+
     console.log('计划总览', response)
 
     const { title, content } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
@@ -171,9 +196,7 @@ async function getChatPlanOverview(prompts: PromptT): Promise<OverviewT> {
 /** @description 计划复盘生成 */
 async function getPlanReview(prompts: PromptT): Promise<PlanReviewT> {
 
-    const data = await getAnswerWithStream(getChatCharacter(prompts))
-
-    const response = data.data
+    const response = await getAnswerWithStream(getChatCharacter(prompts))
 
     const { status, healthInfo, content, tags } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
 
@@ -181,11 +204,24 @@ async function getPlanReview(prompts: PromptT): Promise<PlanReviewT> {
 }
 
 /** @description 病情分析 */
+async function getCaseAnalize(prompts: PromptT): Promise<any> {
+    const response = await getAnswerWithStream(getChatCharacter(prompts))
+
+    const { diseases, type, reasons, advice } =  JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+
+    return {
+        type,
+        diseases: JSON.stringify(diseases),
+        reasons: JSON.stringify(reasons),
+        active: JSON.stringify(advice)
+    }
+}
 
 /** @description 预设 Prompt */
 export default {
     getChatCharacter,
     getChatRecordReview,
     getChatPlanOverview,
-    getPlanReview
+    getPlanReview,
+    getCaseAnalize
 }

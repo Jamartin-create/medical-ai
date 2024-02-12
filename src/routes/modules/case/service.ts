@@ -4,6 +4,7 @@ import CaseAnaModel from '../../../database/models/mdacaseana'
 import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
+import Prompts, { defaultCaseAnalizePrompt } from '../prompts'
 
 const Case = CaseModel(sequelize, DataTypes)
 const CaseAna = CaseAnaModel(sequelize, DataTypes)
@@ -94,7 +95,24 @@ export default class CaseService {
 
     // 分析病情
     static async analizeCase(caseid: string, userid: string) {
-        // TODO：接入 AI
-        console.log('准备分析', caseid, userid)
+
+        const result = await Prompts.getCaseAnalize(await defaultCaseAnalizePrompt(caseid))
+
+        CaseAnaDao.insertOne({...result, userid, caseid})
+    }
+
+    // 病情描述
+    static async genCaseIntro(caseid: string): Promise<string> {
+        
+        const cs = await Case.findOne({ where: { uid: caseid } })
+        if (!cs) throw ErrorCode.NOT_FOUND_CASE_ERROR
+        const { dataValues } = cs
+        const curSit = dataValues.curSituation
+        return `
+            症状：${dataValues.summary}
+            用药史：${dataValues.medical}
+            病史：${dataValues.mdHistory}
+            当前身体自我感觉情况：${curSit === 0 ? '差' : curSit === 1 ? '一般' : '好'}
+        `
     }
 }
