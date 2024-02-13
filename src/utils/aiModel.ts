@@ -59,6 +59,7 @@ export async function getAnswer(res: Response, messages: MessageT[]): Promise<st
 // 普通请求
 export async function getAnswerWithStream(messages: MessageT[]): Promise<any> {
     const data = await axios.post(`${API}/ai/v1/chat/createWithNoStream`, { messages })
+    console.log(data.data)
     if (!data) throw ErrorCode.NETWORK_ERROR
     if (!data.data) throw ErrorCode.NETWORK_ERROR
     if (!data.data.data) throw ErrorCode.AI_GEN_ERROR

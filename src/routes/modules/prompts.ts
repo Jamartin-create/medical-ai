@@ -90,7 +90,7 @@ export const defaultReviewGenPrompt = async (recordid: string): Promise<PromptT>
         `,
         preface: `
             本次的对话内容为: ${record.dataValues.chatDetail}；以上为本次医生和患者的对话详情，请开始分析。
-            请注意！输出只需要输出一个 json 即可，包含两个字段: tags 和 content
+            请注意！你是在和患者面对面交谈，不要以第三人称视角描述；且输出只需要输出一个 json 代码块即可，包含两个字段: tags 和 content
             tags 即为关键词; content 则是分析的结果（请输出代码块）
         `
     }
@@ -109,14 +109,14 @@ export const defaultPlanOverviewGenPrompt = async (planid: string): Promise<Prom
         `,
         preface: `
             以下是本次患者提出的规划期望：${planOverview.toString()}。请开始分析
-            请注意！输出时只需要输出一个 json 即可，包含两个字段：title, content
+            请注意！你是在和患者面对面交谈，不要以第三人称视角描述；且输出时只需要输出一个 json 代码块即可，包含两个字段：title, content
                 1. title 为本次计划的主题
                 2. content 也是一个 json, 包含三个字段: summary, cycle, detail
                     a. summary: 针对生成计划的一个描述，如果生成的 周期 和患者期望的 周期 不一样需要解释一下原因
                     b. cycle: 疗程（周期）
                     c. detail: 一个数组, 包含大致的治疗阶段（第一个疗程、第二个疗程、第三个疗程……）,数组数据结构为：
                         a. tm: 阶段定义
-                        b. plan: 阶段疗程内容（这个疗程要做的事情）
+                        b. plan: 阶段疗程内容（这个疗程要做的事情），值为字符串
         `
     }
 }
@@ -135,7 +135,7 @@ export const deafultPlanReviewGenPrompt = async (planid: string): Promise<Prompt
         `,
         preface: `
             以下是本次患者的目标及打卡记录：${planReview}。请开始分析
-            请注意！输出时只需要输出一个 json 即可， 包含三个字段：status, healthInfo, content
+            请注意！你是在和患者面对面交谈，不要以第三人称视角描述；且输出时只需要输出一个 json 代码块即可， 包含三个字段：status, healthInfo, content
                 1. status: 布尔值 - 表示是否完成，完成则输出 true，反之输出 false
                 2. healthInfo: 患者的身体状态，告诉患者其目前身体状态是好还是不好，并说明原因
                 3. content: 最终的复盘以及患者的后续注意事项
@@ -159,7 +159,7 @@ export const defaultCaseAnalizePrompt = async (caseid: string): Promise<PromptT>
         `,
         preface: `
             以下是本次患者提供的描述信息：${caseInfo}。请开始分析
-            请注意！输出时只需要输出一个 json 即可，包含三个字段：type, advice, diseases, reasons
+            请注意！你是在和患者面对面交谈，不要以第三人称视角描述；且输出时只需要输出一个 json 代码块即可，包含三个字段：type, advice, diseases, reasons
                 1. type: 如果可以明确判断患者所患疾病则值为 0，否则为 1
                 2. advice: 如果 type 为 0，则该值为给患者的一些建议，返回一个字符串数组；如果 type 为 1 则该值为 null
                 3. diseases: 如果 type 为 1，则该值为患者可能患的疾病，返回一个字符串数组；如果 type 为 0 则该值为 null
@@ -172,8 +172,7 @@ export const defaultCaseAnalizePrompt = async (caseid: string): Promise<PromptT>
 async function getChatRecordReview(prompts: PromptT, res: Response): Promise<RecordReviewT> {
     const response: string = await getAnswer(res, getChatCharacter(prompts))
     
-    console.log('分析结果', response)
-    const { tags, content } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+    const { tags, content } = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
 
     return { tags: tags.join(','), content }
 
@@ -184,9 +183,7 @@ async function getChatPlanOverview(prompts: PromptT): Promise<OverviewT> {
 
     const response = await getAnswerWithStream(getChatCharacter(prompts));
 
-    console.log('计划总览', response)
-
-    const { title, content } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+    const { title, content } = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
 
     return { title, content: JSON.stringify(content) }
 }
@@ -198,7 +195,7 @@ async function getPlanReview(prompts: PromptT): Promise<PlanReviewT> {
 
     const response = await getAnswerWithStream(getChatCharacter(prompts))
 
-    const { status, healthInfo, content, tags } = JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+    const { status, healthInfo, content, tags } = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
 
     return { tags: tags.join(","), content: JSON.stringify({ status, content, healthInfo }) }
 }
@@ -207,7 +204,7 @@ async function getPlanReview(prompts: PromptT): Promise<PlanReviewT> {
 async function getCaseAnalize(prompts: PromptT): Promise<any> {
     const response = await getAnswerWithStream(getChatCharacter(prompts))
 
-    const { diseases, type, reasons, advice } =  JSON.parse(response.slice(response.indexOf('{'), response.indexOf('}') + 1))
+    const { diseases, type, reasons, advice } =  JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
 
     return {
         type,

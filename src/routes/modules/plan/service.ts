@@ -21,10 +21,6 @@ export type TargetInfoT = {
     toString: () => string;
 }
 
-export type ReviewInfoT = {
-    toString: () => string;
-}
-
 PlanRecord.addHook('beforeCreate', (model, _) => {
     model.dataValues.status = 0 // 默认是正常状态 0=进行中，1=已结束，2=已中断
 })
@@ -116,9 +112,10 @@ export default class PlanService {
         await PlanReviewDao.insertOne({ planid, tags, content})
     }
 
-    // ai 生成每日计划及资讯
+    // TODO: ai 生成每日计划及资讯
     static async genDailyPlanNews(recordid: string) {
         console.log(`recordid: ${recordid}`)
+
         await PlanRecordAnaDao.insertOne({ recordid, content: "测试内容", genAt: new Date().getTime() })
     }
 
