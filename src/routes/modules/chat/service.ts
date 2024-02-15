@@ -119,4 +119,28 @@ export default class ChatService {
         if (chatAna) chat.dataValues.chatAna = chatAna.dataValues
         return chat.dataValues
     }
+
+    // 获取历史的新对话（避免重复创建无意义的对话）
+    static async checkChatIsNew(data: any) {
+        const { auth } = data
+        const chat = await Chat.findAll({
+            where: { userid: auth.uid },
+            order: ['createdAt'],
+            limit: 1
+        })
+
+        // 没产生过对话
+        if (!chat.length) return null
+
+        const ret = chat[0].dataValues
+
+        const details: MessageT[] = JSON.parse(ret.chatDetail)
+
+        // 上一段对话已经有
+        if(details.length > 2) return null
+        
+        ret.chatDetail = JSON.stringify(details.filter(item => !item.ignore))
+        
+        return ret
+    }
 }
