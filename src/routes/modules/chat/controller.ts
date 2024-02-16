@@ -11,7 +11,7 @@ export class CaseInfo {
     async createChat(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            await ChatService.createChat({ auth }, res)
+            res.send(SuccessRes(await ChatService.createChat({ auth })))
         } catch (e) {
             next(e)
         }
@@ -20,6 +20,7 @@ export class CaseInfo {
     @Post('/keep')
     async keeponChat(req: Request, res: Response, next: NextFunction) {
         try {
+            console.log(req)
             await ChatService.keeponChat(req.body, res)
         } catch (e) {
             next(e)

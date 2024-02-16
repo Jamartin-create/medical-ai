@@ -24,35 +24,38 @@ export type MessageT = {
 
 // 流式请求
 export async function getAnswer(res: Response, messages: MessageT[]): Promise<string> {
-    return new Promise(async (resolve) => {
-        //  设置返回的请求头为事件流
-        res.set({
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive'
-        })
-        res.status(200)
-        const response = await axios.post(`${API}/ai/v1/chat/create/`, { messages }, { responseType: 'stream' })
-        const chunkRequest = response.data
-        let ret: string = ''
-        chunkRequest.on('data', (chunk: Buffer) => {
-            let chunkRes: string = chunk.toString()
-            console.log(chunkRes)
-            const data = eventStreamDataTrans(chunkRes)
-            if(!data.data) return
-            // 利用字符串处理方法提取JSON数据部分
-            const dataJson: any = JSON.parse(data.data);
-            ret += dataJson.result
-            res.write(`event: message\ndata: ${data.data}\n\n`)
-        })
-        chunkRequest.on('end', () => {
-            resolve(ret)
-            res.end()
-        })
-        chunkRequest.on('error', () => {
-            res.end()
-            throw ErrorCode.EXCUTE_ERROR
-        })
+    return new Promise(async (resolve, reject) => {
+        try {
+            //  设置返回的请求头为事件流
+            res.set({
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                Connection: 'keep-alive'
+            })
+            res.status(200)
+            const response = await axios.post(`${API}/ai/v1/chat/create/`, { messages }, { responseType: 'stream' })
+            const chunkRequest = response.data
+            let ret: string = ''
+            chunkRequest.on('data', (chunk: Buffer) => {
+                let chunkRes: string = chunk.toString()
+                const data = eventStreamDataTrans(chunkRes)
+                if(!data.data) return
+                // 利用字符串处理方法提取JSON数据部分
+                const dataJson: any = JSON.parse(data.data);
+                ret += dataJson.result
+                res.write(`event: message\ndata: ${data.data}\n\n`)
+            })
+            chunkRequest.on('end', () => {
+                resolve(ret)
+                res.end()
+            })
+            chunkRequest.on('error', () => {
+                res.end()
+                throw ErrorCode.EXCUTE_ERROR
+            })
+        } catch (e) {
+            reject(e)
+        }
     })
 }
 

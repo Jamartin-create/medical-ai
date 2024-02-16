@@ -51,16 +51,22 @@ export const ChatAnaDao = {
 
 export default class ChatService {
     // 创建对话
-    static async createChat(data: any, res: Response) {
+    static async createChat(data: any) {
         const { auth } = data
 
         // 创建一个聊天，先将角色预设好
         const chatDetails: MessageT[] = Prompts.getChatCharacter(await defaultPrompts(auth.uid))
         // 帮助 大语言模型 立人设
-        const aiAnswer = await getAnswer(res, chatDetails)
-        chatDetails.push({ role: 'assistant', content: aiAnswer })
+        // const aiAnswer = await getAnswer(res, chatDetails)
+        chatDetails.push({ role: 'assistant', content: "我是你的健康小助手，有什么需要帮助的～" })
 
-        await ChatDao.insertOne({ userid: auth.uid, chatDetail: JSON.stringify(chatDetails), chatcount: 1, startAt: new Date().getTime() })
+        const ret = await ChatDao.insertOne({ userid: auth.uid, chatDetail: JSON.stringify(chatDetails), chatcount: 1, startAt: new Date().getTime() })
+
+
+        const details: MessageT[] = JSON.parse(ret.chatDetail)
+
+        ret.chatDetail = JSON.stringify(details.filter(item => !item.ignore))
+        return ret
     }
 
     // 续写对话
@@ -76,16 +82,20 @@ export default class ChatService {
 
         // 拼接用户消息
         detail.push({ role: 'user', content })
-        
-        // 获取 ai 的回答并拼接在记录中
-        const result = await getAnswer(res, detail)
-        detail.push({role: 'assistant', content: result})
 
-        await ChatDao.updateOne({
-            uid,
-            chatDetail: JSON.stringify(detail),
-            chatcount: (chatRecord.dataValues.cahtcount || 0) + 1
-        })
+        try {        
+            // 获取 ai 的回答并拼接在记录中
+            const result = await getAnswer(res, detail)
+            detail.push({role: 'assistant', content: result})
+
+            await ChatDao.updateOne({
+                uid,
+                chatDetail: JSON.stringify(detail),
+                chatcount: (chatRecord.dataValues.cahtcount || 0) + 1
+            })
+        } catch (e) {
+            throw ErrorCode.AI_GEN_ERROR
+        }
     }
 
     // 结束对话
