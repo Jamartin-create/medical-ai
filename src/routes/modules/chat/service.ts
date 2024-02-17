@@ -11,6 +11,12 @@ import Prompts, { defaultPrompts, defaultReviewGenPrompt } from '../prompts'
 const Chat = ChatModel(sequelize, DataTypes)
 const ChatAna = ChatAnaModel(sequelize, DataTypes)
 
+
+Chat.addHook('beforeCreate', (chatModel, options) => {
+    console.log(chatModel, options)
+    chatModel.dataValues.status = 0
+})
+
 export const ChatDao = {
     async insertOne(data: any) {
         return await transactionAction(async (tran) => {
@@ -86,13 +92,18 @@ export default class ChatService {
         try {        
             // 获取 ai 的回答并拼接在记录中
             const result = await getAnswer(res, detail)
-            detail.push({role: 'assistant', content: result})
-
-            await ChatDao.updateOne({
+            detail.push({ role: 'assistant', content: result })
+            
+            const updateInfo: any = {
                 uid,
                 chatDetail: JSON.stringify(detail),
                 chatcount: (chatRecord.dataValues.cahtcount || 0) + 1
-            })
+            }
+
+            // 如果是新对话被续写，那么新对话的状态也随之改变
+            if(chatRecord.dataValues.status === 0) updateInfo.status = 1
+
+            await ChatDao.updateOne(updateInfo)
         } catch (e) {
             throw ErrorCode.AI_GEN_ERROR
         }
@@ -115,7 +126,7 @@ export default class ChatService {
     static async getChatRecords(data: any) {
         // TODO：分页
         const { auth } = data
-        return await Chat.findAll({ where: { userid: auth.uid } })
+        return await Chat.findAll({ where: { userid: auth.uid, status: 1 }, order: [['createdAt', 'DESC']] })
     }
 
     // 对话记录详情获取
@@ -125,7 +136,10 @@ export default class ChatService {
         const chatAna = await ChatAna.findOne({ where: { recordid: uid } })
         const chat = await Chat.findOne({ where: { uid } })
         if (!chat) throw ErrorCode.NOT_FOUND_CHAT_ERROR
-        if (chat.dataValues.chatDetail) chat.dataValues.chatDetail = JSON.parse(chat.dataValues.chatDetail)
+        if (chat.dataValues.chatDetail) {
+            const detailList: MessageT[] = JSON.parse(chat.dataValues.chatDetail)
+            chat.dataValues.chatDetail = detailList.filter(item => !item.ignore)
+        }
         if (chatAna) chat.dataValues.chatAna = chatAna.dataValues
         return chat.dataValues
     }
@@ -135,12 +149,14 @@ export default class ChatService {
         const { auth } = data
         const chat = await Chat.findAll({
             where: { userid: auth.uid },
-            order: ['createdAt'],
+            order: [['createdAt', 'DESC']],
             limit: 1
         })
 
         // 没产生过对话
         if (!chat.length) return null
+
+        console.log('----', chat[0].dataValues)
 
         const ret = chat[0].dataValues
 

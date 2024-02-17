@@ -15,10 +15,16 @@ module.exports = {
       userid: {
         type: Sequelize.STRING
       },
+      title: {
+        type: Sequelize.STRING
+      },
       chatDetail: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       chatcount: {
+        type: Sequelize.INTEGER
+      },
+      status: {
         type: Sequelize.INTEGER
       },
       startAt: {
