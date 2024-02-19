@@ -22,10 +22,10 @@ module.exports = {
         type: Sequelize.STRING
       },
       target: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       cycle: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       startAt: {
         type: Sequelize.DATE

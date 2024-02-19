@@ -19,10 +19,10 @@ module.exports = {
         type: Sequelize.STRING
       },
       content: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       comment: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       helpful: {
         type: Sequelize.INTEGER

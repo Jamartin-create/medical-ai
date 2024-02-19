@@ -19,7 +19,7 @@ module.exports = {
         type: Sequelize.STRING
       },
       chatDetail: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       chatcount: {
         type: Sequelize.INTEGER

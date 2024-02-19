@@ -22,13 +22,13 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       advice: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       diseases: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       reasons: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       helpful: {
         type: Sequelize.INTEGER

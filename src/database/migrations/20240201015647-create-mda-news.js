@@ -13,10 +13,10 @@ module.exports = {
         type: Sequelize.STRING
       },
       content: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       tags: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       source: {
         type: Sequelize.STRING
