@@ -5,5 +5,5 @@ import crypto from 'crypto'
  * @returns
  */
 export function md5Pwd(pwd: string) {
-    return crypto.createHash('md5').update(pwd).digest('hex')
-  }
+  return crypto.createHash('md5').update(pwd).digest('hex')
+}

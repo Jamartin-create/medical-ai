@@ -32,7 +32,7 @@ export class CaseInfo {
     async getCaseList(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            res.send(SuccessRes(await CaseService.getCaseList({ auth })))
+            res.send(SuccessRes(await CaseService.getCaseList({ auth, ...req.query })))
         } catch (e) {
             next(e)
         }
