@@ -17,8 +17,8 @@ module.exports = (sequelize, DataTypes) => {
     uid: DataTypes.STRING,
     recordid: DataTypes.STRING,
     newsid: DataTypes.STRING,
-    content: DataTypes.STRING,
-    helpful: DataTypes.INTEGER,
+    content: DataTypes.STRING, // 计划总结及明日计划内容
+    helpful: DataTypes.INTEGER, // 是否有帮助：0=有；1=没有
     genAt: DataTypes.DATE
   }, {
     sequelize,

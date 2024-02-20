@@ -15,15 +15,15 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaUser.init({
     uid: DataTypes.STRING,
-    username: DataTypes.STRING,
-    password: DataTypes.STRING,
-    avatar: DataTypes.STRING,
-    realname: DataTypes.STRING,
-    age: DataTypes.INTEGER,
-    gender: DataTypes.INTEGER,
-    tel: DataTypes.STRING,
-    email: DataTypes.STRING,
-    status: DataTypes.INTEGER
+    username: DataTypes.STRING, // 用户名
+    password: DataTypes.STRING, // 密码
+    avatar: DataTypes.STRING, // 头像
+    realname: DataTypes.STRING, // 真名
+    age: DataTypes.INTEGER, // 年龄
+    gender: DataTypes.INTEGER, // 性别
+    tel: DataTypes.STRING, // 电话
+    email: DataTypes.STRING, // 邮箱
+    status: DataTypes.INTEGER // 状态：0=正常；1=不正常
   }, {
     sequelize,
     modelName: 'mdaUser',

@@ -16,11 +16,11 @@ module.exports = (sequelize, DataTypes) => {
   mdaPlanRecord.init({
     uid: DataTypes.STRING,
     planid: DataTypes.STRING,
-    diet: DataTypes.STRING,
-    sleep: DataTypes.STRING,
-    medical: DataTypes.STRING,
-    memo: DataTypes.STRING,
-    status: DataTypes.INTEGER
+    diet: DataTypes.STRING, // 饮食情况
+    sleep: DataTypes.STRING, // 作息情况
+    medical: DataTypes.STRING, // 用药情况
+    memo: DataTypes.STRING, // 备注
+    status: DataTypes.INTEGER // 状态：0=进行中，1=已结束，2=已中断
   }, {
     sequelize,
     modelName: 'mdaPlanRecord',

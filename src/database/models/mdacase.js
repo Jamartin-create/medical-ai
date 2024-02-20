@@ -15,12 +15,12 @@ module.exports = (sequelize, DataTypes) => {
   }
   mdaCase.init({
     uid: DataTypes.STRING,
-    curSituation: DataTypes.INTEGER,
-    summary: DataTypes.STRING,
-    userid: DataTypes.STRING,
-    medical: DataTypes.STRING,
-    mdHistory: DataTypes.STRING,
-    status: DataTypes.INTEGER
+    curSituation: DataTypes.INTEGER, // 当前状态：0=差、1=一般、2=好
+    summary: DataTypes.STRING, // 自我描述
+    userid: DataTypes.STRING, // 用户 id
+    medical: DataTypes.STRING, // 用药史
+    mdHistory: DataTypes.STRING, // 病史
+    status: DataTypes.INTEGER // 病情：0=病ing，1=痊愈
   }, {
     sequelize,
     modelName: 'mdaCase',

@@ -30,7 +30,7 @@ module.exports = {
       reasons: {
         type: Sequelize.TEXT
       },
-      helpful: {
+      status: {
         type: Sequelize.INTEGER
       },
       genAt: {

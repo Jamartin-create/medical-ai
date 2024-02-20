@@ -16,9 +16,9 @@ module.exports = (sequelize, DataTypes) => {
   mdaQaRecord.init({
     uid: DataTypes.STRING,
     userid: DataTypes.STRING,
-    title: DataTypes.STRING,
-    chatDetail: DataTypes.STRING,
-    chatcount: DataTypes.INTEGER,
+    title: DataTypes.STRING, // 聊天标题（ai 生成）
+    chatDetail: DataTypes.STRING, // 对话详情
+    chatcount: DataTypes.INTEGER, // 对话记录数量
     status: DataTypes.INTEGER, // 0=新对话，1=旧对话，2=已归档对话
     startAt: DataTypes.DATE,
     endAt: DataTypes.DATE
