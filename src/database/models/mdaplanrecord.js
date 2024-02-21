@@ -20,7 +20,6 @@ module.exports = (sequelize, DataTypes) => {
     sleep: DataTypes.STRING, // 作息情况
     medical: DataTypes.STRING, // 用药情况
     memo: DataTypes.STRING, // 备注
-    status: DataTypes.INTEGER // 状态：0=进行中，1=已结束，2=已中断
   }, {
     sequelize,
     modelName: 'mdaPlanRecord',

@@ -9,6 +9,8 @@ import Prompts, { defaultCaseAnalizePrompt } from '../prompts'
 const Case = CaseModel(sequelize, DataTypes)
 const CaseAna = CaseAnaModel(sequelize, DataTypes)
 
+
+// TODO: 查询时将病史、用药史用 JSON.parse 解析一下
 Case.addHook('beforeCreate', (caseModel, _) => {
     caseModel.dataValues.status = 0 // 默认该病还没好 0=病ing，1=痊愈
 })
@@ -56,8 +58,14 @@ export default class CaseService {
     // 创建病例
     static async createCase(data: any) {
         const { curSituation, summary, medical, mdHistory, auth } = data
-        if (!curSituation || !summary) throw ErrorCode.PARAMS_MISS_ERROR
-        const mdCase = await CaseDao.insertOne({ curSituation, summary, medical, mdHistory, userid: auth.uid })
+        if (curSituation == null || !summary) throw ErrorCode.PARAMS_MISS_ERROR
+        const mdCase = await CaseDao.insertOne({
+            curSituation,
+            summary,
+            medical: JSON.stringify(medical),
+            mdHistory: JSON.stringify(mdHistory),
+            userid: auth.uid
+        })
         this.analizeCase(mdCase.uid, auth.uid); // 开始分析
     }
 

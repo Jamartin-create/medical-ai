@@ -27,9 +27,6 @@ module.exports = {
       memo: {
         type: Sequelize.STRING
       },
-      status: {
-        type: Sequelize.INTEGER
-      },
       createdAt: {
         type: Sequelize.DATE
       },

@@ -27,6 +27,9 @@ module.exports = {
       cycle: {
         type: Sequelize.TEXT
       },
+      status: {
+        type: Sequelize.INTEGER
+      },
       startAt: {
         type: Sequelize.DATE
       },

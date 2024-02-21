@@ -21,7 +21,7 @@ export type TargetInfoT = {
     toString: () => string;
 }
 
-PlanRecord.addHook('beforeCreate', (model, _) => {
+Plan.addHook('beforeCreate', (model, _) => {
     model.dataValues.status = 0 // 默认是正常状态 0=进行中，1=已结束，2=已中断
 })
 
@@ -67,7 +67,7 @@ export default class PlanService {
     // 新建计划
     static async createPlan(data: any) {
         const { auth, ...others } = data
-        if (!others.type || !others.target || !others.cycle) throw ErrorCode.PARAMS_MISS_ERROR
+        if (others.type == undefined || !others.target || !others.cycle) throw ErrorCode.PARAMS_MISS_ERROR
         const startAt = new Date()
         startAt.setDate(startAt.getDate() + 1)
         const plan = await PlanDao.insertOne({ userid: auth.uid, ...others, startAt: startAt.getTime() })
@@ -80,7 +80,7 @@ export default class PlanService {
         if (!uid) throw ErrorCode.PARAMS_MISS_ERROR
         const plan = await Plan.findOne({ where: { uid } })
         if (!plan) throw ErrorCode.PARAMS_MISS_ERROR
-        await PlanDao.updateOne({ uid, endAt: new Date().getTime() })
+        await PlanDao.updateOne({ uid, endAt: new Date().getTime(), status: 1 })
         this.genPlanReview(uid)
     }
 

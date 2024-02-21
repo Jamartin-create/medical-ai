@@ -140,6 +140,9 @@ export const deafultPlanReviewGenPrompt = async (planid: string): Promise<Prompt
                 2. healthInfo: 患者的身体状态，告诉患者其目前身体状态是好还是不好，并说明原因
                 3. content: 最终的复盘以及患者的后续注意事项
                 4. tags: 对话复盘过程中生成的一些关键词
+        `,
+        cordon: `
+            如果你打卡记录为空或者你无法通过现有的打卡记录进行分析，请依然返回 json 代码块，只是 status 的值为 false，content 的值为：无法根据打卡记录进行复盘。其他字段值为 null
         `
     }
 }
