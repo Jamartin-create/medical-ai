@@ -4,6 +4,9 @@ import './modules/user/controller'
 import './modules/case/controller'
 import './modules/chat/controller'
 import './modules/plan/controller'
+
+// oss 配置
+import './resource/oss'
 import jwt from '../plugin/jwt'
 
 const routes = Router()
