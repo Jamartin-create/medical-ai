@@ -22,6 +22,10 @@ export type UserHealthInfo = {
 User.addHook('beforeCreate', (userModel, options) => {
     console.log(userModel, options)
     userModel.dataValues.status = 0
+    // 性别赋值为未知
+    if (userModel.dataValues.gender == undefined) {
+        userModel.dataValues.gender = -1
+    }
 })
 
 
@@ -82,6 +86,7 @@ export default class UserService {
 
     // 编辑信息
     static async editInfo(data: any) {
+        console.log(data)
         Object.keys(data).forEach(key => {
             if (['password', 'username', 'email', 'status'].includes(key)) delete data[key]
         })

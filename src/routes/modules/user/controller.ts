@@ -29,7 +29,7 @@ export class UserAuth {
 
 @Controller(`${prefix}/info`)
 export class UserInfo {
-    @Get('/info')
+    @Get('/')
     async getDetail(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
@@ -38,7 +38,7 @@ export class UserInfo {
             next(e)
         }
     }
-    @Put('/info')
+    @Put('/')
     async editDetail(req: Request, res: Response, next: NextFunction) {
         try{
             const { auth, body } = req
