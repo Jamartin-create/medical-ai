@@ -49,7 +49,17 @@ export const UserDAO = {
             )
             return user
         })
-    }
+    },
+    // 获取一条数据
+    async selectOne(data: any, jsonAttr?: string[]) {
+        const ret = await User.findOne({ where: data.wrp, ...data.options })
+        if(!jsonAttr) return ret
+        Object.keys(ret.dataValues).forEach(key => {
+            if(!jsonAttr.includes(key)) return 
+            ret.dataValues[key] = JSON.parse(ret.dataValues[key])
+        })
+        return ret
+    },
 }
 
 export default class UserService {
@@ -79,16 +89,19 @@ export default class UserService {
 
     // 获取用户信息
     static async getInfo(uid: string) {
-        const user = await User.findOne({ where: { uid }, attributes: { exclude: ['password'] } })
+        const user = await UserDAO.selectOne({ 
+            wrp: { uid }, 
+            options: {attributes: { exclude: ['password'] }}
+        }, ['allergy', 'medicalHis'])
         if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR;
         return user
     }
 
     // 编辑信息
     static async editInfo(data: any) {
-        console.log(data)
         Object.keys(data).forEach(key => {
-            if (['password', 'username', 'email', 'status'].includes(key)) delete data[key]
+            if(['allergy', 'medicalHis'].includes(key)) data[key] = JSON.stringify(data[key]) 
+            if (['password', 'username', 'email', 'status'].includes(key))delete data[key]
         })
         await UserDAO.updateOne(data)
     }

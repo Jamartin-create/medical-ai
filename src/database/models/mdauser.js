@@ -23,6 +23,10 @@ module.exports = (sequelize, DataTypes) => {
     gender: DataTypes.INTEGER, // 性别
     tel: DataTypes.STRING, // 电话
     email: DataTypes.STRING, // 邮箱
+    medicalHis: DataTypes.TEXT, // 既往病史
+    allergy: DataTypes.TEXT, // 过敏史
+    height: DataTypes.INTEGER, // 身高
+    weight: DataTypes.INTEGER, // 体重
     status: DataTypes.INTEGER // 状态：0=正常；1=不正常
   }, {
     sequelize,
