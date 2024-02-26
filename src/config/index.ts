@@ -20,7 +20,7 @@ const config = {
     database: process.env.MYSQL_DB_NAME,
     username: process.env.MYSQL_USERNAME,
     password: process.env.MYSQL_PWD,
-    host: process.env.MYSQL_HSOT,
+    host: process.env.MYSQL_HOST,
     port: parseInt(process.env.MYSQL_PORT!),
     dialect: process.env.MYSQL_DIALECT as Dialect,
     timezone: process.env.MYSQL_TIMEZONE,

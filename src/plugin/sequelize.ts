@@ -13,8 +13,8 @@ export async function connect() {
   try {
     await sequelize.authenticate()
     Log.success('MySQL connect Success !')
-  } catch (e) {
-    Log.error('Unable to connect MySQL !')
+  } catch (e: any) {
+    Log.error('Unable to connect MySQL! reason:' + e.toString())
   }
 }
 
