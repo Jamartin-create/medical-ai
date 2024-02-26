@@ -17,6 +17,7 @@ export const ErrorCode = {
   AI_GEN_ERROR: generatorMError(40001, '助手分析失败'),
   AI_GEN_RECORD_REVIEW_ERROR: generatorMError(40002, '生成对话总结失败'),
   NETWORK_ERROR: generatorMError(90001, '网络错误'),
+  CONFIG_OSS_MISS_ERROR: generatorMError(90002, 'oss 配置文件缺失'),
   EXCUTE_ERROR: generatorMError(99999, '执行异常')
 }
 

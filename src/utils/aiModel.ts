@@ -1,9 +1,12 @@
 /** @description 用于连接 AI 模型 */
-import axios from "axios";
-import { Response } from "express";
-import { ErrorCode } from "./exceptions";
+import axios from 'axios'
+import { Response } from 'express'
+import { ErrorCode } from './exceptions'
+import config from '../config'
 
-const eventStreamDataTrans = (es: string) => { 
+const { aiServer } = config
+
+const eventStreamDataTrans = (es: string) => {
     const eventIdx = es.indexOf('event: ')
     const dataIdx = es.indexOf('data: ')
     return {
@@ -12,18 +15,21 @@ const eventStreamDataTrans = (es: string) => {
     }
 }
 
-const API = 'http://localhost:3461'
+const API = aiServer.api
 
 export type MessageT = {
-    role: string;
-    content: string;
+    role: string
+    content: string
     ignore?: boolean
 }
 
 // 获取 token
 
 // 流式请求
-export async function getAnswer(res: Response, messages: MessageT[]): Promise<string> {
+export async function getAnswer(
+    res: Response,
+    messages: MessageT[]
+): Promise<string> {
     return new Promise(async (resolve, reject) => {
         try {
             //  设置返回的请求头为事件流
@@ -33,15 +39,19 @@ export async function getAnswer(res: Response, messages: MessageT[]): Promise<st
                 Connection: 'keep-alive'
             })
             res.status(200)
-            const response = await axios.post(`${API}/ai/v1/chat/create/`, { messages }, { responseType: 'stream' })
+            const response = await axios.post(
+                `${API}/ai/v1/chat/create/`,
+                { messages },
+                { responseType: 'stream' }
+            )
             const chunkRequest = response.data
             let ret: string = ''
             chunkRequest.on('data', (chunk: Buffer) => {
                 let chunkRes: string = chunk.toString()
                 const data = eventStreamDataTrans(chunkRes)
-                if(!data.data) return
+                if (!data.data) return
                 // 利用字符串处理方法提取JSON数据部分
-                const dataJson: any = JSON.parse(data.data);
+                const dataJson: any = JSON.parse(data.data)
                 ret += dataJson.result
                 res.write(`event: message\ndata: ${data.data}\n\n`)
             })
@@ -61,7 +71,9 @@ export async function getAnswer(res: Response, messages: MessageT[]): Promise<st
 
 // 普通请求
 export async function getAnswerWithStream(messages: MessageT[]): Promise<any> {
-    const data = await axios.post(`${API}/ai/v1/chat/createWithNoStream`, { messages })
+    const data = await axios.post(`${API}/ai/v1/chat/createWithNoStream`, {
+        messages
+    })
     console.log(data.data)
     if (!data) throw ErrorCode.NETWORK_ERROR
     if (!data.data) throw ErrorCode.NETWORK_ERROR
