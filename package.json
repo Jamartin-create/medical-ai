@@ -5,6 +5,10 @@
   "main": "./lib/index.js",
   "scripts": {
     "dev": "nodemon",
+    "dev:prod": "npm run build && cross-env NODE_ENV=prod node .",
+    "start": "npm run build && cross-env NODE_ENV=dev node .",
+    "start:prod": "npm run build && cross-env NODE_ENV=prod forever start -a .",
+    "build": "rimraf lib && tsc --outDir lib --module CommonJS --experimentalDecorators",
     "changelog": "conventional-changelog -p -i CHANGELOG.md -s",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migration:init": "bash dbmigration.sh",
