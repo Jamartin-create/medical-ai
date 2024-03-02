@@ -133,7 +133,7 @@ export default class PlanService {
         // 如果 status 是 -1 表示全部，则不需要这个查询 flag
         if (status == -1) delete where.status
 
-        const list = await Plan.findAll({ where, ...order })
+        const list = await Plan.findAll({ where, ...order, order: [['createdAt', 'DESC']]})
         const total = await Plan.count({ where })
 
         return getPageResult(list, total)

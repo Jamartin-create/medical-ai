@@ -4,7 +4,9 @@ import CaseAnaModel from '../../../database/models/mdacaseana'
 import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
-import Prompts, { defaultCaseAnalizePrompt } from '../prompts'
+import Prompts from '../prompts'
+import { getPageParams } from '../../../utils/tools'
+import { Response } from 'express'
 
 const Case = CaseModel(sequelize, DataTypes)
 const CaseAna = CaseAnaModel(sequelize, DataTypes)
@@ -59,14 +61,14 @@ export default class CaseService {
     static async createCase(data: any) {
         const { curSituation, summary, medical, mdHistory, auth } = data
         if (curSituation == null || !summary) throw ErrorCode.PARAMS_MISS_ERROR
-        const mdCase = await CaseDao.insertOne({
+        return await CaseDao.insertOne({
             curSituation,
             summary,
             medical: JSON.stringify(medical),
             mdHistory: JSON.stringify(mdHistory),
             userid: auth.uid
         })
-        this.analizeCase(mdCase.uid, auth.uid); // 开始分析
+
     }
 
     // 病情反馈
@@ -81,19 +83,15 @@ export default class CaseService {
 
     // 查询病例列表
     static async getCaseList(data: any) {
-        const { auth, pageIndex, pageSize } = data
-        if (!pageIndex || !pageSize) throw ErrorCode.PARAMS_MISS_PAGE_ERROR
-        const limit = parseInt(pageSize)
-        const offset = parseInt(pageIndex) 
-        const list = await Case.findAll({ where: { userid: auth.uid }, limit, offset: offset * limit })
+        const { auth } = data
+        // 获取分页参数
+        const { order, getPageResult } = getPageParams(data)
+
+        const list = await Case.findAll({ where: { userid: auth.uid }, ...order, order: [['createdAt', 'DESC']] })
         
         const total = await Case.count({ where: { userid: auth.uid }})
-
-        const pageCount = Math.ceil(total / limit)
-        const hasNext = offset + 1 < pageCount
-        const hasPrevious = offset > 0
         
-        return { list, total, pageCount, hasNext, hasPrevious }
+        return getPageResult(list, total)
     }
 
     // 查询病例详情
@@ -112,28 +110,14 @@ export default class CaseService {
     }
 
     // 分析病情
-    static async analizeCase(caseid: string, userid: string) {
+    static async analizeCase(data: any, res: Response) {
+        const { caseid, auth } = data
         try {
-            const result = await Prompts.getCaseAnalize(await defaultCaseAnalizePrompt(caseid))
-            CaseAnaDao.insertOne({...result, userid, caseid})
+            const result = await Prompts.getCaseAnalize(caseid, res)
+            CaseAnaDao.insertOne({...result, userid: auth.uid, caseid})
         } catch (e) {
-            CaseAnaDao.insertOne({ status: 2, userid, caseid })
+            CaseAnaDao.insertOne({ status: 2, userid: auth.uid, caseid })
             console.log(e)
         }
-    }
-
-    // 病情描述
-    static async genCaseIntro(caseid: string): Promise<string> {
-        
-        const cs = await Case.findOne({ where: { uid: caseid } })
-        if (!cs) throw ErrorCode.NOT_FOUND_CASE_ERROR
-        const { dataValues } = cs
-        const curSit = dataValues.curSituation
-        return `
-            症状：${dataValues.summary}
-            用药史：${dataValues.medical}
-            病史：${dataValues.mdHistory}
-            当前身体自我感觉情况：${curSit === 0 ? '差' : curSit === 1 ? '一般' : '好'}
-        `
     }
 }

@@ -11,8 +11,17 @@ export class CaseInfo {
     async createCase(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            await CaseService.createCase({ ...req.body, auth })
-            res.send(SuccessRes('success'))
+            res.send(SuccessRes(await CaseService.createCase({ ...req.body, auth })))
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    @Post('/genAnalize')
+    async genAnalize(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { auth } = req
+            await CaseService.analizeCase({ ...req.body, auth }, res)
         } catch (e) {
             next(e)
         }
