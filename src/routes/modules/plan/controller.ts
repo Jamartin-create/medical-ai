@@ -19,8 +19,16 @@ export class PlanController {
     async createPlan(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            await PlanService.createPlan({ auth, ...req.body })
-            res.send(SuccessRes('success'))
+            res.send(SuccessRes(await PlanService.createPlan({ auth, ...req.body })))
+        } catch (e) {
+            next(e)
+        }
+    }
+    @Post('/overview')
+    async genOverview(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { auth } = req
+            await PlanService.genPlanOverview({auth, ...req.body}, res)
         } catch (e) {
             next(e)
         }
@@ -37,7 +45,7 @@ export class PlanController {
     @Get('/list')
     async getPlanList(req: Request, res: Response, next: NextFunction) {
         try {
-            res.send(SuccessRes(await PlanService.getPlanList({ auth: req.auth })))
+            res.send(SuccessRes(await PlanService.getPlanList({ auth: req.auth, ...req.query })))
         } catch (e) {
             next(e)
         }

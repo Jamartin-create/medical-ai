@@ -7,7 +7,9 @@ import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { DataTypes } from 'sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
-import Prompts, { deafultPlanReviewGenPrompt, defaultPlanOverviewGenPrompt } from '../prompts'
+import Prompts, { deafultPlanReviewGenPrompt } from '../prompts'
+import { getPageParams, ie } from '../../../utils/tools'
+import { Response } from 'express'
 
 const Plan = PlanModel(sequelize, DataTypes)
 const PlanRecord = PlanRecordModel(sequelize, DataTypes)
@@ -56,22 +58,23 @@ function BaseDao(model: BaseModelT) {
     }
 }
 
-const PlanDao = BaseDao(Plan)
-const PlanRecordDao = BaseDao(PlanRecord)
-const PlanRecordAnaDao = BaseDao(PlanRecordAna)
-const PlanOverviewDao = BaseDao(PlanOverview)
-const PlanReviewDao = BaseDao(PlanReview)
+export const PlanDao = BaseDao(Plan)
+export const PlanRecordDao = BaseDao(PlanRecord)
+export const PlanRecordAnaDao = BaseDao(PlanRecordAna)
+export const PlanOverviewDao = BaseDao(PlanOverview)
+export const PlanReviewDao = BaseDao(PlanReview)
 
 
 export default class PlanService {
     // 新建计划
     static async createPlan(data: any) {
         const { auth, ...others } = data
-        if (others.type == undefined || !others.target || !others.cycle) throw ErrorCode.PARAMS_MISS_ERROR
+        if (ie(others.type) || ie(others.target) || ie(others.cycle)) throw ErrorCode.PARAMS_MISS_ERROR
         const startAt = new Date()
+        
+        // 开始日期是创建日期的后一天
         startAt.setDate(startAt.getDate() + 1)
-        const plan = await PlanDao.insertOne({ userid: auth.uid, ...others, startAt: startAt.getTime() })
-        this.genPlanOverview(auth.uid, plan.uid)
+        return await PlanDao.insertOne({ userid: auth.uid, ...others, startAt: startAt.getTime() })
     }
 
     // 关闭计划
@@ -94,11 +97,11 @@ export default class PlanService {
     }
 
     // ai 创建计划大纲
-    static async genPlanOverview(userid: string, planid: string) {
-        console.log(`user: ${userid}, plan: ${planid} 生成记录`)
+    static async genPlanOverview(data: any, res: Response) {
+        const { auth, planid } = data
+        console.log(`user: ${auth.uid}, plan: ${planid} 生成记录`)
 
-        // TODO：获取用户的病史加入分析过程
-        const detail = await Prompts.getChatPlanOverview(await defaultPlanOverviewGenPrompt(planid))
+        const detail = await Prompts.getChatPlanOverview(planid, res)
 
         await PlanOverviewDao.insertOne({ planid, ...detail })
     }
@@ -121,9 +124,19 @@ export default class PlanService {
 
     // 获取计划清单
     static async getPlanList(data: any) {
-        const { auth } = data
-        // TODO: 分页
-        return await Plan.findAll({ where: { userid: auth.uid } })
+        const { auth, status } = data
+        if (ie(status)) throw ErrorCode.PARAMS_MISS_ERROR
+        // 获取分页参数
+        const { order, getPageResult } = getPageParams(data)
+
+        const where = { userid: auth.uid, status}
+        // 如果 status 是 -1 表示全部，则不需要这个查询 flag
+        if (status == -1) delete where.status
+
+        const list = await Plan.findAll({ where, ...order })
+        const total = await Plan.count({ where })
+
+        return getPageResult(list, total)
     }
 
     // 获取计划详情
@@ -161,34 +174,6 @@ export default class PlanService {
         const { planid } = data
 
         return await PlanReview.findOne({ where: { planid } })
-    }
-
-
-    // 获取计划目标（给生成 prompt 用）
-    static async genPlanTarget(planid: string): Promise<TargetInfoT> {
-
-        const plan = await PlanDao.selectOne({ wrp: { uid: planid } })
-        
-        if (!plan) throw ErrorCode.NOT_FOUND_PLAN_ERROR
-
-        const planValue = plan.dataValues
-
-        const target = planValue.target
-        const cycle = planValue.cycle
-
-        // 明确是康复计划还是养生计划
-        let type = planValue.type === 1 ? '养生' : '康复'
-
-        const targetInfo: TargetInfoT = {
-            target: target,
-            cycle: cycle,
-            toString: function() {
-                const { cycle, target } = this
-                return `此次${type}目标：${target}，期望${type}疗程（周期）：${cycle}`
-            }
-        }
-
-        return targetInfo
     }
 
     // 获取计划复盘内容

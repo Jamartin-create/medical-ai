@@ -5,7 +5,7 @@ import { MessageT, getAnswer, getAnswerWithStream } from "../../utils/aiModel"
 import { ChatDao } from "./chat/service"
 import UserService from "./user/service"
 import { ErrorCode } from "../../utils/exceptions"
-import PlanService from "./plan/service"
+import PlanService, { PlanDao } from "./plan/service"
 import CaseService from "./case/service"
 
 /** @description 立人设，对话用 */
@@ -96,31 +96,6 @@ export const defaultReviewGenPrompt = async (recordid: string): Promise<PromptT>
     }
 }
 
-// 生成计划总览提示词
-export const defaultPlanOverviewGenPrompt = async (planid: string): Promise<PromptT> => {
-    
-    const planOverview = await PlanService.genPlanTarget(planid)
-
-    return {
-        character: '康复医疗师',
-        summary: `
-            作为康复医疗师，你的工作是针对患者的目标，患者会告诉你其想要治疗的周期，以及其想要达到的效果
-            你需要根据它的描述为其制定比较符合其期望的计划。
-        `,
-        preface: `
-            以下是本次患者提出的规划期望：${planOverview.toString()}。请开始分析
-            请注意！你是在和患者面对面交谈，不要以第三人称视角描述；且输出时只需要输出一个 json 代码块即可，包含两个字段：title, content
-                1. title 为本次计划的主题
-                2. content 也是一个 json, 包含三个字段: summary, cycle, detail
-                    a. summary: 针对生成计划的一个描述，如果生成的 周期 和患者期望的 周期 不一样需要解释一下原因
-                    b. cycle: 疗程（周期）
-                    c. detail: 一个数组, 包含大致的治疗阶段（第一个疗程、第二个疗程、第三个疗程……）,数组数据结构为：
-                        a. tm: 阶段定义
-                        b. plan: 阶段疗程内容（这个疗程要做的事情），值为字符串
-        `
-    }
-}
-
 // 对计划完成情况进行复盘
 export const deafultPlanReviewGenPrompt = async (planid: string): Promise<PromptT> => {
     const planReview = await PlanService.genPlanReviewPrompts(planid)
@@ -182,9 +157,47 @@ async function getChatRecordReview(prompts: PromptT, res: Response): Promise<Rec
 }
 
 /** @description 计划总览生成 */
-async function getChatPlanOverview(prompts: PromptT): Promise<OverviewT> {
+async function getChatPlanOverview(planid: string, res?: Response): Promise<OverviewT> {
 
-    const response = await getAnswerWithStream(getChatCharacter(prompts));
+
+    // TODO：获取用户的病史加入分析过程
+    async function getInfo() {
+        const plan = await PlanDao.selectOne({ wrp: { uid: planid } })
+            
+        if (!plan) throw ErrorCode.NOT_FOUND_PLAN_ERROR
+
+        const planValue = plan.dataValues
+
+        const target = planValue.target
+        const cycle = planValue.cycle
+
+        // 明确是康复计划还是养生计划
+        let type = planValue.type === 1 ? '养生' : '康复'
+
+        return `此次${type}目标：${target}，期望${type}疗程（周期）：${cycle}`
+    }
+
+
+    const prompts = getChatCharacter({
+        character: '康复医疗师',
+        summary: `
+            作为康复医疗师，你的工作是针对患者的目标，患者会告诉你其想要治疗的周期，以及其想要达到的效果
+            你需要根据它的描述为其制定比较符合其期望的计划。
+        `,
+        preface: `
+            以下是本次患者提出的规划期望：${await getInfo()}。请开始分析
+            请注意！你是在和患者面对面交谈，不要以第三人称视角描述；且输出时只需要输出一个 json 代码块即可，包含两个字段：title, content
+                1. title 为本次计划的主题
+                2. content 也是一个 json, 包含三个字段: summary, cycle, detail
+                    a. summary: 针对生成计划的一个描述，如果生成的 周期 和患者期望的 周期 不一样需要解释一下原因
+                    b. cycle: 疗程（周期）
+                    c. detail: 一个数组, 包含大致的治疗阶段（第一个疗程、第二个疗程、第三个疗程……）,数组数据结构为：
+                        a. tm: 阶段定义
+                        b. plan: 阶段疗程内容（这个疗程要做的事情），值为字符串
+        `
+    })
+
+    const response = !res ? await getAnswerWithStream(prompts) : await getAnswer(res, prompts)
 
     const { title, content } = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
 
