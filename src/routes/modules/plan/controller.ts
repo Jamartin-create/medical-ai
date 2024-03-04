@@ -58,6 +58,14 @@ export class PlanController {
             next(e)
         }
     }
+    @Get('/todolist')
+    async getTodoList(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.send(SuccessRes(await PlanService.getTodayToDoPlan(req)))
+        } catch (e) {
+            next(e)
+        }
+    }
 }
 
 @Controller(`${prefix}/record`)

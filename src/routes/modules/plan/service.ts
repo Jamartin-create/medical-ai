@@ -177,6 +177,16 @@ export default class PlanService {
         return await PlanReview.findOne({ where: { planid } })
     }
 
+    // 获取用户今日的打卡任务
+    static async getTodayToDoPlan(data: any) {
+        const { auth } = data
+
+        // 获取今日要打卡的计划（查询条件：当前用户创建的计划，计划的打卡状态为进行中=0）
+        const ret = await PlanDao.selectList({ wrp: { userid: auth.uid, status: 0 }});
+
+        return ret
+    }
+
     // 获取计划复盘内容
     static async genPlanReviewPrompts(planid: string): Promise<string> {
 
