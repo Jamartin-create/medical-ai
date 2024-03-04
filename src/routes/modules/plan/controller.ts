@@ -19,7 +19,9 @@ export class PlanController {
     async createPlan(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            res.send(SuccessRes(await PlanService.createPlan({ auth, ...req.body })))
+            res.send(
+                SuccessRes(await PlanService.createPlan({ auth, ...req.body }))
+            )
         } catch (e) {
             next(e)
         }
@@ -28,7 +30,7 @@ export class PlanController {
     async genOverview(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            await PlanService.genPlanOverview({auth, ...req.body}, res)
+            await PlanService.genPlanOverview({ auth, ...req.body }, res)
         } catch (e) {
             next(e)
         }
@@ -45,7 +47,14 @@ export class PlanController {
     @Get('/list')
     async getPlanList(req: Request, res: Response, next: NextFunction) {
         try {
-            res.send(SuccessRes(await PlanService.getPlanList({ auth: req.auth, ...req.query })))
+            res.send(
+                SuccessRes(
+                    await PlanService.getPlanList({
+                        auth: req.auth,
+                        ...req.query
+                    })
+                )
+            )
         } catch (e) {
             next(e)
         }
@@ -66,6 +75,19 @@ export class PlanController {
             next(e)
         }
     }
+    @Get('/checklist')
+    async getCheckList(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { auth } = req
+            res.send(
+                SuccessRes(
+                    await PlanService.getCheckTodoPlan({ auth, ...req.body })
+                )
+            )
+        } catch (e) {
+            next(e)
+        }
+    }
 }
 
 @Controller(`${prefix}/record`)
@@ -81,7 +103,9 @@ export class PlanRecordController {
     @Get('/')
     async getRecordDetail(req: Request, res: Response, next: NextFunction) {
         try {
-            res.send(SuccessRes(await PlanService.getPlanRecordDetail(req.query)))
+            res.send(
+                SuccessRes(await PlanService.getPlanRecordDetail(req.query))
+            )
         } catch (e) {
             next(e)
         }
@@ -90,9 +114,20 @@ export class PlanRecordController {
     async createRecord(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            await PlanService.dailyCheck({ auth, ...req.body })
-            res.send(SuccessRes('success'))
-        } catch (e) { 
+            res.send(
+                SuccessRes(await PlanService.dailyCheck({ auth, ...req.body }))
+            )
+        } catch (e) {
+            next(e)
+        }
+    }
+    @Post('/genAdvice')
+    async genRecordAdvice(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.send(
+                SuccessRes(await PlanService.genDailyPlanNews(req.body, res))
+            )
+        } catch (e) {
             next(e)
         }
     }

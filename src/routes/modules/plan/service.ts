@@ -10,6 +10,7 @@ import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
 import Prompts, { deafultPlanReviewGenPrompt } from '../prompts'
 import { getPageParams, ie } from '../../../utils/tools'
 import { Response } from 'express'
+import { Op } from 'sequelize'
 
 const Plan = PlanModel(sequelize, DataTypes)
 const PlanRecord = PlanRecordModel(sequelize, DataTypes)
@@ -18,33 +19,37 @@ const PlanOverview = PlanOverviewModel(sequelize, DataTypes)
 const PlanReview = PlanReviewModel(sequelize, DataTypes)
 
 export type TargetInfoT = {
-    cycle: string; // 周期
-    target: string; // 目标
-    toString: () => string;
+    cycle: string // 周期
+    target: string // 目标
+    toString: () => string
 }
 
 Plan.addHook('beforeCreate', (model, _) => {
     model.dataValues.status = 0 // 默认是正常状态 0=进行中，1=已结束，2=已中断
 })
 
-type BaseModelT = typeof Plan | typeof PlanRecord | typeof PlanRecordAna | typeof PlanOverview | typeof PlanReview
+type BaseModelT =
+    | typeof Plan
+    | typeof PlanRecord
+    | typeof PlanRecordAna
+    | typeof PlanOverview
+    | typeof PlanReview
 
 function BaseDao(model: BaseModelT) {
     return {
         async insertOne(data: any) {
             return await transactionAction(async function (tran) {
-                return await model.create(
-                    beforeCreateOne(data),
-                    { transaction: tran }
-                )
+                return await model.create(beforeCreateOne(data), {
+                    transaction: tran
+                })
             })
         },
         async updateOne(data: any, wrapper: any = {}) {
             return await transactionAction(async function (tran) {
-                return await model.update(
-                    beforeUpdateOne(data),
-                    { where: { uid: data.uid, ...wrapper }, transaction: tran }
-                )
+                return await model.update(beforeUpdateOne(data), {
+                    where: { uid: data.uid, ...wrapper },
+                    transaction: tran
+                })
             })
         },
         // 获取一条数据
@@ -64,17 +69,21 @@ export const PlanRecordAnaDao = BaseDao(PlanRecordAna)
 export const PlanOverviewDao = BaseDao(PlanOverview)
 export const PlanReviewDao = BaseDao(PlanReview)
 
-
 export default class PlanService {
     // 新建计划
     static async createPlan(data: any) {
         const { auth, ...others } = data
-        if (ie(others.type) || ie(others.target) || ie(others.cycle)) throw ErrorCode.PARAMS_MISS_ERROR
+        if (ie(others.type) || ie(others.target) || ie(others.cycle))
+            throw ErrorCode.PARAMS_MISS_ERROR
         const startAt = new Date()
-        
+
         // 开始日期是创建日期的后一天
         startAt.setDate(startAt.getDate() + 1)
-        return await PlanDao.insertOne({ userid: auth.uid, ...others, startAt: startAt.getTime() })
+        return await PlanDao.insertOne({
+            userid: auth.uid,
+            ...others,
+            startAt: startAt.getTime()
+        })
     }
 
     // 关闭计划
@@ -91,9 +100,12 @@ export default class PlanService {
     static async dailyCheck(data: any) {
         const { auth, ...other } = data
         const { planid, diet, sleep, medical } = other
-        if (!planid || !diet || !sleep || !medical) throw ErrorCode.PARAMS_MISS_ERROR
-        const record = await PlanRecordDao.insertOne({ userid: auth.uid, ...other })
-        await this.genDailyPlanNews(record.dataValues.uid)
+        if (!planid || !diet || !sleep || !medical)
+            throw ErrorCode.PARAMS_MISS_ERROR
+        return await PlanRecordDao.insertOne({
+            userid: auth.uid,
+            ...other
+        })
     }
 
     // ai 创建计划大纲
@@ -101,7 +113,10 @@ export default class PlanService {
         const { auth, planid } = data
         console.log(`user: ${auth.uid}, plan: ${planid} 生成记录`)
 
-        const {title, ...other} = await Prompts.getChatPlanOverview(planid, res)
+        const { title, ...other } = await Prompts.getChatPlanOverview(
+            planid,
+            res
+        )
 
         await PlanDao.updateOne({ uid: planid, title })
         await PlanOverviewDao.insertOne({ planid, ...other })
@@ -111,16 +126,24 @@ export default class PlanService {
     static async genPlanReview(planid: string) {
         console.log(`plan: ${planid}`)
 
-        const { tags, content } = await Prompts.getPlanReview(await deafultPlanReviewGenPrompt(planid))
+        const { tags, content } = await Prompts.getPlanReview(
+            await deafultPlanReviewGenPrompt(planid)
+        )
 
-        await PlanReviewDao.insertOne({ planid, tags, content})
+        await PlanReviewDao.insertOne({ planid, tags, content })
     }
 
-    // TODO: ai 生成每日计划及资讯
-    static async genDailyPlanNews(recordid: string) {
-        console.log(`recordid: ${recordid}`)
+    // 每日打卡后的 ai 分析
+    static async genDailyPlanNews(data: any, res: Response) {
+        console.log(`recordid: ${data.recordid}`)
 
-        await PlanRecordAnaDao.insertOne({ recordid, content: "测试内容", genAt: new Date().getTime() })
+        const content = await Prompts.getDailyRecordAnalize(data.recordid, res)
+
+        await PlanRecordAnaDao.insertOne({
+            recordid: data.record,
+            content,
+            genAt: new Date().getTime()
+        })
     }
 
     // 获取计划清单
@@ -130,11 +153,15 @@ export default class PlanService {
         // 获取分页参数
         const { order, getPageResult } = getPageParams(data)
 
-        const where = { userid: auth.uid, status}
+        const where = { userid: auth.uid, status }
         // 如果 status 是 -1 表示全部，则不需要这个查询 flag
         if (status == -1) delete where.status
 
-        const list = await Plan.findAll({ where, ...order, order: [['createdAt', 'DESC']]})
+        const list = await Plan.findAll({
+            where,
+            ...order,
+            order: [['createdAt', 'DESC']]
+        })
         const total = await Plan.count({ where })
 
         return getPageResult(list, total)
@@ -144,7 +171,9 @@ export default class PlanService {
     static async getPlanDetail(data: any) {
         const { uid } = data
         const plan = await Plan.findOne({ where: { uid } })
-        const planOverview = await PlanOverview.findOne({ where: { planid: uid } })
+        const planOverview = await PlanOverview.findOne({
+            where: { planid: uid }
+        })
         const planReview = await PlanReview.findOne({ where: { planid: uid } })
         if (!plan) throw ErrorCode.NOT_FOUND_CASE_ERROR
         if (planOverview) plan.dataValues.planOverview = planOverview.dataValues
@@ -159,11 +188,13 @@ export default class PlanService {
         return await PlanRecord.findAll({ where: { planid } })
     }
 
-    // 获取打卡记录详情 
+    // 获取打卡记录详情
     static async getPlanRecordDetail(data: any) {
         const { uid } = data
         const record = await PlanRecord.findOne({ where: { uid } })
-        const recordAna = await PlanRecordAna.findOne({ where: { recordid: uid } })
+        const recordAna = await PlanRecordAna.findOne({
+            where: { recordid: uid }
+        })
         if (!record) throw ErrorCode.NOT_FOUND_PLAN_RECORD_ERROR
         if (recordAna) record.dataValues.recordAna = recordAna.dataValues
         console.log(recordAna?.dataValues)
@@ -182,14 +213,39 @@ export default class PlanService {
         const { auth } = data
 
         // 获取今日要打卡的计划（查询条件：当前用户创建的计划，计划的打卡状态为进行中=0）
-        const ret = await PlanDao.selectList({ wrp: { userid: auth.uid, status: 0 }});
-
+        const ret = await PlanDao.selectList({
+            wrp: { userid: auth.uid, status: 0 },
+            options: {
+                attributes: ['id', 'uid', 'title']
+            }
+        })
         return ret
+    }
+
+    // 获取今日已经打卡的任务
+    static async getCheckTodoPlan(data: any) {
+        const s = new Date()
+        s.setHours(0, 0, 0, 0)
+        const e = new Date()
+        e.setHours(23, 59, 59, 999)
+
+        const ret = (await this.getTodayToDoPlan(data)).map(
+            item => item.dataValues.uid
+        )
+
+        return (
+            await PlanRecordDao.selectList({
+                wrp: {
+                    planid: { [Op.in]: ret },
+                    createdAt: { [Op.between]: [s, e] }
+                },
+                options: { attributes: ['planid'] }
+            })
+        ).map(item => item.dataValues.planid)
     }
 
     // 获取计划复盘内容
     static async genPlanReviewPrompts(planid: string): Promise<string> {
-
         const plan = await PlanDao.selectOne({ wrp: { uid: planid } })
         const planRecords = await PlanRecordDao.selectList({ wrp: { planid } })
         // TODO: 获取每日计划复盘的内容
@@ -197,7 +253,7 @@ export default class PlanService {
 
         const { dataValues } = plan
         const recordCount = planRecords.length
-        
+
         return `
             类型：${dataValues.type === 1 ? '养生' : '康复'}
             目标：${dataValues.target}

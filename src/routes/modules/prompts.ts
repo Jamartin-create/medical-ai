@@ -1,12 +1,17 @@
 /** @description 生成提示词脚本 */
 
-import { Response } from "express"
-import { MessageT, getAnswer, getAnswerWithStream } from "../../utils/aiModel"
-import { ChatDao } from "./chat/service"
-import UserService from "./user/service"
-import { ErrorCode } from "../../utils/exceptions"
-import PlanService, { PlanDao } from "./plan/service"
-import { CaseDao } from "./case/service"
+import { Response } from 'express'
+import { MessageT, getAnswer, getAnswerWithStream } from '../../utils/aiModel'
+import { ChatDao } from './chat/service'
+import UserService from './user/service'
+import { ErrorCode } from '../../utils/exceptions'
+import PlanService, {
+    PlanDao,
+    PlanOverviewDao,
+    PlanRecordDao
+} from './plan/service'
+import { CaseDao } from './case/service'
+import { Op } from 'sequelize'
 
 /** @description 立人设，对话用 */
 function getChatCharacter(prompts: PromptT): MessageT[] {
@@ -23,38 +28,37 @@ function getChatCharacter(prompts: PromptT): MessageT[] {
 
 // 提示词组成
 type PromptT = {
-    character: string, // 人设
-    summary: string, // 描述
-    preface?: string, // 前言
+    character: string // 人设
+    summary: string // 描述
+    preface?: string // 前言
     cordon?: string // 警戒线
 }
 
 // 对话总结
 type RecordReviewT = {
-    tags: string[]; // 关键词
-    content: string; // 大 Json
+    tags: string[] // 关键词
+    content: string // 大 Json
 }
 
 // 计划总览
 type OverviewT = {
-    title: string;
-    content: string;
+    title: string
+    content: string
 }
 
 // 计划复盘
 type PlanReviewT = {
-    content: any;
-    tags: string;
+    content: any
+    tags: string
 }
 
 // 生成针对特定病人的身体情况而定的医生人设 prompts
 export const defaultPrompts = async (uid: string): Promise<PromptT> => {
-
     const info = await UserService.getUserHealth(uid)
     if (!info) throw ErrorCode.NOT_FOUND_USER_ERROR
-    
+
     return {
-        character: "门诊医生",
+        character: '门诊医生',
         summary: `
             您需要回答前来看病的病人的问题，他的问题可能是资讯自己可能患的疾病，也有可能是询问一些已确诊的疾病的治疗方案。
             如果是第一种：您需要根据病人对病情的描述判断病人可能患上的疾病。
@@ -70,15 +74,16 @@ export const defaultPrompts = async (uid: string): Promise<PromptT> => {
 }
 
 // 分析对话结果提示词
-export const defaultReviewGenPrompt = async (recordid: string): Promise<PromptT> => {
-
+export const defaultReviewGenPrompt = async (
+    recordid: string
+): Promise<PromptT> => {
     const record = await ChatDao.selectOne({
         wrp: { uid: recordid },
         options: { attributes: { include: ['chatDetail'] } }
     })
 
-    if (!record) throw ErrorCode.NOT_FOUND_CHAT_ERROR;
-    
+    if (!record) throw ErrorCode.NOT_FOUND_CHAT_ERROR
+
     // a. 患者是来看病的：医生针对患者的描述判断患者所患疾病，
     // b. 患者是来复查的：
     return {
@@ -97,7 +102,9 @@ export const defaultReviewGenPrompt = async (recordid: string): Promise<PromptT>
 }
 
 // 对计划完成情况进行复盘
-export const deafultPlanReviewGenPrompt = async (planid: string): Promise<PromptT> => {
+export const deafultPlanReviewGenPrompt = async (
+    planid: string
+): Promise<PromptT> => {
     const planReview = await PlanService.genPlanReviewPrompts(planid)
     return {
         character: '康复医疗师',
@@ -122,26 +129,29 @@ export const deafultPlanReviewGenPrompt = async (planid: string): Promise<Prompt
     }
 }
 
-// TODO: 每日打卡分析以及相关资讯
-
 /** @description 对话结果分析，对话结束用 */
-async function getChatRecordReview(prompts: PromptT, res: Response): Promise<RecordReviewT> {
+async function getChatRecordReview(
+    prompts: PromptT,
+    res: Response
+): Promise<RecordReviewT> {
     const response: string = await getAnswer(res, getChatCharacter(prompts))
-    
-    const { tags, content } = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
+
+    const { tags, content } = JSON.parse(
+        response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1)
+    )
 
     return { tags: tags.join(','), content }
-
 }
 
 /** @description 计划总览生成 */
-async function getChatPlanOverview(planid: string, res?: Response): Promise<OverviewT> {
-
-
+async function getChatPlanOverview(
+    planid: string,
+    res?: Response
+): Promise<OverviewT> {
     // TODO：获取用户的病史加入分析过程
     async function getInfo() {
         const plan = await PlanDao.selectOne({ wrp: { uid: planid } })
-            
+
         if (!plan) throw ErrorCode.NOT_FOUND_PLAN_ERROR
 
         const planValue = plan.dataValues
@@ -154,7 +164,6 @@ async function getChatPlanOverview(planid: string, res?: Response): Promise<Over
 
         return `此次${type}目标：${target}，期望${type}疗程（周期）：${cycle}`
     }
-
 
     const prompts = getChatCharacter({
         character: '康复医疗师',
@@ -175,23 +184,89 @@ async function getChatPlanOverview(planid: string, res?: Response): Promise<Over
         `
     })
 
-    const response = !res ? await getAnswerWithStream(prompts) : await getAnswer(res, prompts)
+    const response = !res
+        ? await getAnswerWithStream(prompts)
+        : await getAnswer(res, prompts)
 
-    const { title, content } = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
+    const { title, content } = JSON.parse(
+        response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1)
+    )
 
     return { title, content: JSON.stringify(content) }
 }
 
 /** @description 每日计划生成 */
+async function getDailyRecordAnalize(
+    recordid: string,
+    res?: Response
+): Promise<string> {
+    function getRecordInfo(record: any) {
+        return `三餐：${record.diet}；睡眠：${record.sleep}；用药：${record.medical}`
+    }
+
+    const record = await PlanRecordDao.selectOne({ wrp: { uid: recordid } })
+    if (!record) throw ErrorCode.NOT_FOUND_PLAN_RECORD_ERROR
+    const overview = await PlanOverviewDao.selectOne({
+        wrp: { planid: record.dataValues.planid }
+    })
+    if (!overview) throw ErrorCode.NOT_FOUND_PLAN_OVERVIEW_ERROR
+
+    const records = await PlanRecordDao.selectList({
+        wrp: {
+            [Op.and]: [
+                { planid: record.dataValues.planid },
+                {
+                    uid: {
+                        [Op.ne]: recordid
+                    }
+                }
+            ]
+        }
+    })
+
+    // 获取历史打卡记录
+    const hisRecords = records
+        .map(item => {
+            return `
+            日期：${item.dataValues.createdAt}；打卡记录：${getRecordInfo(item.dataValues)}
+        `
+        })
+        .join('\n')
+
+    const prompts = getChatCharacter({
+        character: '康复医疗师',
+        summary: `
+            在此次之前你给患者制定了一系列的计划，患者正按照你制定的计划进行每日打卡
+            你需要根据患者的历史打卡，和本次打卡内容，再结合你给患者制定的计划，对患者的打卡做出评价
+            评价内容可以随意发挥，并在结尾讲一些鼓励的华语
+            
+        `,
+        preface: `
+            这些是患者本次打卡记录：${getRecordInfo(record.dataValues)}。
+            这些是患者历史打卡记录列表：${hisRecords}。
+            这些是你之前为患者制定的计划大纲：${overview.dataValues.content}。
+            请开始分析
+        `
+    })
+    const result = !res
+        ? await getAnswerWithStream(prompts)
+        : await getAnswer(res, prompts)
+
+    return result
+}
 
 /** @description 计划复盘生成 */
 async function getPlanReview(prompts: PromptT): Promise<PlanReviewT> {
-
     const response = await getAnswerWithStream(getChatCharacter(prompts))
 
-    const { status, healthInfo, content, tags } = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
+    const { status, healthInfo, content, tags } = JSON.parse(
+        response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1)
+    )
 
-    return { tags: tags.join(","), content: JSON.stringify({ status, content, healthInfo }) }
+    return {
+        tags: tags.join(','),
+        content: JSON.stringify({ status, content, healthInfo })
+    }
 }
 
 /** @description 病情分析 */
@@ -209,8 +284,6 @@ async function getCaseAnalize(caseid: string, res?: Response): Promise<any> {
             当前身体自我感觉情况：${curSit === 0 ? '差' : curSit === 1 ? '一般' : '好'}
         `
     }
-
-    
 
     const prompts = getChatCharacter({
         character: '国内顶尖的急诊科门诊医师主任',
@@ -232,11 +305,15 @@ async function getCaseAnalize(caseid: string, res?: Response): Promise<any> {
         `
     })
 
-    const response = !res ? await getAnswerWithStream(prompts) : getAnswer(res, prompts)
+    const response = !res
+        ? await getAnswerWithStream(prompts)
+        : getAnswer(res, prompts)
 
     try {
-        const { diseases, type, reasons, advice } =  JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1))
-    
+        const { diseases, type, reasons, advice } = JSON.parse(
+            response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1)
+        )
+
         return {
             type,
             diseases: JSON.stringify(diseases),
@@ -254,5 +331,6 @@ export default {
     getChatRecordReview,
     getChatPlanOverview,
     getPlanReview,
-    getCaseAnalize
+    getCaseAnalize,
+    getDailyRecordAnalize
 }

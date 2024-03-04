@@ -10,14 +10,12 @@ import { CaseDao } from '../case/service'
 const User = UserModel(sequelize, DataTypes)
 
 export type UserHealthInfo = {
-    gender: number;
-    age: number;
-    medical: any[];
-    mdHistory: any[];
-    toString: () => string;
+    gender: number
+    age: number
+    medical: any[]
+    mdHistory: any[]
+    toString: () => string
 }
-
-
 
 User.addHook('beforeCreate', (userModel, options) => {
     console.log(userModel, options)
@@ -28,42 +26,40 @@ User.addHook('beforeCreate', (userModel, options) => {
     }
 })
 
-
 export const UserDAO = {
     // 插入一条数据
     async insertOne(data: any) {
         return await transactionAction(async function (tran) {
-            const user = await User.create(
-                beforeCreateOne(data),
-                { transaction: tran }
-            )
+            const user = await User.create(beforeCreateOne(data), {
+                transaction: tran
+            })
             return user
         })
     },
     // 更新一条数据
     async updateOne(data: any) {
         return await transactionAction(async function (tran) {
-            const user = await User.update(
-                beforeUpdateOne(data),
-                { where: { uid: data.uid }, transaction: tran }
-            )
+            const user = await User.update(beforeUpdateOne(data), {
+                where: { uid: data.uid },
+                transaction: tran
+            })
             return user
         })
     },
     // 获取一条数据
     async selectOne(data: any, jsonAttr?: string[]) {
         const ret = await User.findOne({ where: data.wrp, ...data.options })
-        if(!jsonAttr) return ret
+        if (!ret) return null
+        if (!jsonAttr) return ret
         Object.keys(ret.dataValues).forEach(key => {
-            if(!jsonAttr.includes(key)) return 
+            if (!jsonAttr.includes(key)) return
             ret.dataValues[key] = JSON.parse(ret.dataValues[key])
         })
         return ret
-    },
+    }
 }
 
 export default class UserService {
-
     // 注册
     static async registry(data: any) {
         // TODO: 邮箱注册
@@ -80,7 +76,8 @@ export default class UserService {
         if (!username || !password) throw ErrorCode.PARAMS_MISS_ERROR
         const user = await User.findOne({ where: { username } })
         if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR
-        if (user.dataValues.password != md5Pwd(password)) throw ErrorCode.AUTH_PWD_ERROR
+        if (user.dataValues.password != md5Pwd(password))
+            throw ErrorCode.AUTH_PWD_ERROR
         const options: any = {}
         // 选择了保持登录状态则延长至一个月
         if (staystatus) options.expiresIn = '720h'
@@ -89,19 +86,24 @@ export default class UserService {
 
     // 获取用户信息
     static async getInfo(uid: string) {
-        const user = await UserDAO.selectOne({ 
-            wrp: { uid }, 
-            options: {attributes: { exclude: ['password'] }}
-        }, ['allergy', 'medicalHis'])
-        if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR;
+        const user = await UserDAO.selectOne(
+            {
+                wrp: { uid },
+                options: { attributes: { exclude: ['password'] } }
+            },
+            ['allergy', 'medicalHis']
+        )
+        if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR
         return user
     }
 
     // 编辑信息
     static async editInfo(data: any) {
         Object.keys(data).forEach(key => {
-            if(['allergy', 'medicalHis'].includes(key)) data[key] = JSON.stringify(data[key]) 
-            if (['password', 'username', 'email', 'status'].includes(key))delete data[key]
+            if (['allergy', 'medicalHis'].includes(key))
+                data[key] = JSON.stringify(data[key])
+            if (['password', 'username', 'email', 'status'].includes(key))
+                delete data[key]
         })
         await UserDAO.updateOne(data)
     }
@@ -112,7 +114,8 @@ export default class UserService {
         if (!oldPwd || !newPwd) throw ErrorCode.AUTH_PWD_ERROR
         const user = await User.findOne({ where: { uid } })
         if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR
-        if (user.dataValues.password !== md5Pwd(oldPwd)) throw ErrorCode.AUTH_PWD_ERROR
+        if (user.dataValues.password !== md5Pwd(oldPwd))
+            throw ErrorCode.AUTH_PWD_ERROR
         await UserDAO.updateOne({ uid, password: newPwd })
         return
     }
@@ -122,7 +125,11 @@ export default class UserService {
         const user = await User.findOne({ where: { uid } })
         const cases = await CaseDao.selectList({
             wrp: { userid: uid },
-            options: {  attributes: { include: ['medical', 'mdHistory', 'curSituation'] } }
+            options: {
+                attributes: {
+                    include: ['medical', 'mdHistory', 'curSituation']
+                }
+            }
         })
         if (!user) throw ErrorCode.NOT_FOUND_USER_ERROR
 
@@ -140,14 +147,14 @@ export default class UserService {
 
         // 填充案例
         if (cases) {
-            cases.forEach((item) => {
+            cases.forEach(item => {
                 const userDetail = item.dataValues
                 userDetail.medical && userInfo.medical.push(userDetail.medical)
-                userDetail.mdHistory && userInfo.mdHistory.push(userDetail.mdHistory)
+                userDetail.mdHistory &&
+                    userInfo.mdHistory.push(userDetail.mdHistory)
             })
         }
 
         return userInfo
-
     }
 }
