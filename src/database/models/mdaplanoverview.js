@@ -17,7 +17,6 @@ module.exports = (sequelize, DataTypes) => {
     uid: DataTypes.STRING,
     planid: DataTypes.STRING, 
     content: DataTypes.STRING, // 大纲内容
-    title: DataTypes.STRING, // 计划标题
     helpful: DataTypes.INTEGER // 是否有帮助：0=有；1=没有
   }, {
     sequelize,

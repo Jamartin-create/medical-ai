@@ -21,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     advice: DataTypes.STRING, // 康复建议
     diseases: DataTypes.STRING, // 病情分析
     reasons: DataTypes.STRING, // 病因分析
+    content: DataTypes.STRING, // 分析报告的全部内容
     status: DataTypes.INTEGER, // 报告状态：0=正常；1=作废；2=失败
     genAt: DataTypes.DATE // 报告生成日期
   }, {

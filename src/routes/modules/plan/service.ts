@@ -101,9 +101,10 @@ export default class PlanService {
         const { auth, planid } = data
         console.log(`user: ${auth.uid}, plan: ${planid} 生成记录`)
 
-        const detail = await Prompts.getChatPlanOverview(planid, res)
+        const {title, ...other} = await Prompts.getChatPlanOverview(planid, res)
 
-        await PlanOverviewDao.insertOne({ planid, ...detail })
+        await PlanDao.updateOne({ uid: planid, title })
+        await PlanOverviewDao.insertOne({ planid, ...other })
     }
 
     // ai 对计划完成情况进行复盘

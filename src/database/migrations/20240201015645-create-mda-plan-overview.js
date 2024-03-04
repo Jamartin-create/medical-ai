@@ -18,9 +18,6 @@ module.exports = {
       content: {
         type: Sequelize.TEXT
       },
-      title: {
-        type: Sequelize.STRING
-      },
       helpful: {
         type: Sequelize.INTEGER
       },

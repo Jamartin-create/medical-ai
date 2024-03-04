@@ -30,6 +30,9 @@ module.exports = {
       reasons: {
         type: Sequelize.TEXT
       },
+      content: {
+        type: Sequelize.TEXT
+      },
       status: {
         type: Sequelize.INTEGER
       },

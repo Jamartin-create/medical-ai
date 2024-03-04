@@ -24,6 +24,9 @@ module.exports = {
       target: {
         type: Sequelize.TEXT
       },
+      title: {
+        type: Sequelize.STRING
+      },
       cycle: {
         type: Sequelize.TEXT
       },

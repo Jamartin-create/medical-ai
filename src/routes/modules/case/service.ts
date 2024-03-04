@@ -114,7 +114,7 @@ export default class CaseService {
         const { caseid, auth } = data
         try {
             const result = await Prompts.getCaseAnalize(caseid, res)
-            CaseAnaDao.insertOne({...result, userid: auth.uid, caseid})
+            CaseAnaDao.insertOne({...result, content: result, userid: auth.uid, caseid})
         } catch (e) {
             CaseAnaDao.insertOne({ status: 2, userid: auth.uid, caseid })
             console.log(e)
