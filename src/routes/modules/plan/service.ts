@@ -183,9 +183,33 @@ export default class PlanService {
 
     // 获取打卡记录列表
     static async getPlanRecordList(data: any) {
-        // TODO: 分页
-        const { planid } = data
-        return await PlanRecord.findAll({ where: { planid } })
+        const { planid, month: m, auth } = data
+        const month = parseInt(m, 10)
+        if (month < 1 || month > 12) throw ErrorCode.PARAMS_NOT_CORRECT_ERROR
+        const wrp: any = {}
+        if (planid) wrp.planid = planid
+        if (month) {
+            const isLastMonth = month === 12
+            const year = new Date().getFullYear()
+            const endYear = isLastMonth ? year + 1 : year
+            const endMonth = isLastMonth ? 1 : month + 1
+            const s = new Date(`${year}-${month}-01 00:00:00`)
+            const e = new Date(`${endYear}-${endMonth}-01 00:00:00`)
+            wrp.createdAt = {
+                [Op.between]: [s, e]
+            }
+        }
+
+        if (!wrp.planid) {
+            const planList = (
+                await PlanDao.selectList({ wrp: { userid: auth.uid } })
+            ).map(item => item.dataValues.uid)
+            wrp.planid = {
+                [Op.in]: planList
+            }
+        }
+
+        return await PlanRecord.findAll({ where: wrp })
     }
 
     // 获取打卡记录详情

@@ -95,7 +95,12 @@ export class PlanRecordController {
     @Get('/list')
     async getRecordList(req: Request, res: Response, next: NextFunction) {
         try {
-            res.send(SuccessRes(await PlanService.getPlanRecordList(req.query)))
+            const { auth } = req
+            res.send(
+                SuccessRes(
+                    await PlanService.getPlanRecordList({ auth, ...req.query })
+                )
+            )
         } catch (e) {
             next(e)
         }
