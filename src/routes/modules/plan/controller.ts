@@ -136,4 +136,14 @@ export class PlanRecordController {
             next(e)
         }
     }
+
+    @Get('/statistic/sevenDays')
+    async getStatistic(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { auth } = req
+            res.send(SuccessRes(await PlanService.getRecordStatistic({ auth })))
+        } catch (e) {
+            next(e)
+        }
+    }
 }

@@ -4,7 +4,7 @@ import PlanRecordAnaModel from '../../../database/models/mdaplanrecordana'
 import PlanOverviewModel from '../../../database/models/mdaplanoverview'
 import PlanReviewModel from '../../../database/models/mdaplanreview'
 import { sequelize, transactionAction } from '../../../plugin/sequelize'
-import { DataTypes } from 'sequelize'
+import { DataTypes, QueryTypes } from 'sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
 import Prompts, { deafultPlanReviewGenPrompt } from '../prompts'
@@ -285,5 +285,41 @@ export default class PlanService {
             真实打卡天数：${recordCount}
             每日打卡信息：${planRecords.map(({ dataValues: record }) => `日期：${record.createAt};睡眠：${record.sleep};用药：${record.medical};饮食：${record.diet}\n`)}
         `
+    }
+
+    // 获取七日内的打卡情况（统计）
+    static async getRecordStatistic(data: any) {
+        const { auth } = data
+
+        // TODO: Refactor
+
+        const sql = `
+            SELECT
+                date_list.date AS date,
+                COALESCE(COUNT(DISTINCT p.uid), 0) AS plan_count,
+                COALESCE(COUNT(r.uid), 0) AS actual_count
+            FROM
+                (
+                    SELECT DATE_SUB(CURDATE(), INTERVAL n DAY) AS date
+                    FROM (
+                        SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+                        UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
+                    ) AS numbers
+                ) AS date_list
+            LEFT JOIN
+                mdaplans p 
+                        ON 
+                            date_list.date BETWEEN DATE(p.startAt) AND  COALESCE(DATE(p.endAt), '9999-12-31')
+                        AND p.userid = '${auth.uid}'
+            LEFT JOIN
+                mdaplanrecords r ON date_list.date = DATE(r.createdAt) AND p.uid = r.planid
+            WHERE
+                date_list.date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
+            GROUP BY
+                date_list.date;
+        `
+        const res = await sequelize.query(sql, { type: QueryTypes.SELECT })
+
+        return res
     }
 }
