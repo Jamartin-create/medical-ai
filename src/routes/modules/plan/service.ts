@@ -78,7 +78,7 @@ export default class PlanService {
         const startAt = new Date()
 
         // 开始日期是创建日期的后一天
-        startAt.setDate(startAt.getDate() + 1)
+        startAt.setHours(0, 0, 0, 0)
         return await PlanDao.insertOne({
             userid: auth.uid,
             ...others,
@@ -314,7 +314,7 @@ export default class PlanService {
             LEFT JOIN
                 mdaplanrecords r ON date_list.date = DATE(r.createdAt) AND p.uid = r.planid
             WHERE
-                date_list.date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
+                date_list.date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE() + 1
             GROUP BY
                 date_list.date;
         `
