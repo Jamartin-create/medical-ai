@@ -292,34 +292,59 @@ export default class PlanService {
         const { auth } = data
 
         // TODO: Refactor
+        try {
+            const sql = `
+                SELECT
+                    date_list.date AS date,
+                    COALESCE(COUNT(DISTINCT p.uid), 0) AS plan_count,
+                    COALESCE(COUNT(r.uid), 0) AS actual_count
+                FROM
+                    (
+                        SELECT DATE_SUB(CURDATE(), INTERVAL n DAY) AS date
+                        FROM (
+                            SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+                            UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
+                        ) AS numbers
+                    ) AS date_list
+                LEFT JOIN
+                    mdaPlans p 
+                            ON 
+                                date_list.date BETWEEN DATE(p.startAt) AND  COALESCE(DATE(p.endAt), '9999-12-31')
+                            AND p.userid = '${auth.uid}'
+                LEFT JOIN
+                    mdaPlanRecords r ON date_list.date = DATE(r.createdAt) AND p.uid = r.planid
+                WHERE
+                    date_list.date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE() + 1
+                GROUP BY
+                    date_list.date;
+            `
+            const res = await sequelize.query(sql, { type: QueryTypes.SELECT })
 
-        const sql = `
-            SELECT
-                date_list.date AS date,
-                COALESCE(COUNT(DISTINCT p.uid), 0) AS plan_count,
-                COALESCE(COUNT(r.uid), 0) AS actual_count
-            FROM
-                (
-                    SELECT DATE_SUB(CURDATE(), INTERVAL n DAY) AS date
-                    FROM (
-                        SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
-                        UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
-                    ) AS numbers
-                ) AS date_list
-            LEFT JOIN
-                mdaplans p 
-                        ON 
-                            date_list.date BETWEEN DATE(p.startAt) AND  COALESCE(DATE(p.endAt), '9999-12-31')
-                        AND p.userid = '${auth.uid}'
-            LEFT JOIN
-                mdaplanrecords r ON date_list.date = DATE(r.createdAt) AND p.uid = r.planid
-            WHERE
-                date_list.date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE() + 1
-            GROUP BY
-                date_list.date;
-        `
-        const res = await sequelize.query(sql, { type: QueryTypes.SELECT })
+            return res
+        } catch (e) {
+            console.log(e)
+            var dateArray = []
+            var currentDate = new Date()
 
-        return res
+            // 获取七天前的日期
+            var sevenDaysAgo = new Date(currentDate)
+            sevenDaysAgo.setDate(currentDate.getDate() - 6)
+
+            // 循环生成日期对象，从七天前到今天
+            for (
+                var d = new Date(sevenDaysAgo);
+                d <= currentDate;
+                d.setDate(d.getDate() + 1)
+            ) {
+                var dateObject = {
+                    date: new Date(d),
+                    plan_count: 0,
+                    actual_count: 0
+                }
+                dateArray.push(dateObject)
+            }
+
+            return dateArray
+        }
     }
 }
