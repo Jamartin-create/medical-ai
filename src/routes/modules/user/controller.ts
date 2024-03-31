@@ -19,7 +19,6 @@ export class UserAuth {
     @Post('/login')
     async login(req: Request, res: Response, next: NextFunction) {
         try {
-            console.log(req.body)
             res.send(SuccessRes(await UserService.login(req.body)))
         } catch (e) {
             next(e)
@@ -40,9 +39,9 @@ export class UserInfo {
     }
     @Put('/')
     async editDetail(req: Request, res: Response, next: NextFunction) {
-        try{
+        try {
             const { auth, body } = req
-            await UserService.editInfo({uid: auth.uid, ...body})
+            await UserService.editInfo({ uid: auth.uid, ...body })
             res.send(SuccessRes('success'))
         } catch (e) {
             next(e)
@@ -52,7 +51,7 @@ export class UserInfo {
     async changePwd(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth, body } = req
-            await UserService.changePwd({...auth, ...body})
+            await UserService.changePwd({ ...auth, ...body })
             res.send(SuccessRes('success'))
         } catch (e) {
             next(e)

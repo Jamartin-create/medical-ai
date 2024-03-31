@@ -4,13 +4,12 @@ import CaseAnaModel from '../../../database/models/mdacaseana'
 import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
-import Prompts from '../prompts'
+import Prompts, { getKeywords } from '../prompts'
 import { getPageParams } from '../../../utils/tools'
 import { Response } from 'express'
 
 const Case = CaseModel(sequelize, DataTypes)
 const CaseAna = CaseAnaModel(sequelize, DataTypes)
-
 
 // TODO: 查询时将病史、用药史用 JSON.parse 解析一下
 Case.addHook('beforeCreate', (caseModel, _) => {
@@ -18,7 +17,8 @@ Case.addHook('beforeCreate', (caseModel, _) => {
 })
 
 CaseAna.addHook('beforeCreate', (caseAnaModel, _) => {
-    if(caseAnaModel.dataValues.status == undefined) caseAnaModel.dataValues.status = 0
+    if (caseAnaModel.dataValues.status == undefined)
+        caseAnaModel.dataValues.status = 0
 })
 
 type BaseModelT = typeof Case | typeof CaseAna
@@ -27,18 +27,17 @@ function BaseDao(model: BaseModelT) {
     return {
         async insertOne(data: any) {
             return await transactionAction(async function (tran) {
-                return await model.create(
-                    beforeCreateOne(data),
-                    { transaction: tran }
-                )
+                return await model.create(beforeCreateOne(data), {
+                    transaction: tran
+                })
             })
         },
         async updateOne(data: any, wrapper: any = {}) {
             return await transactionAction(async function (tran) {
-                return await model.update(
-                    beforeUpdateOne(data),
-                    { where: { uid: data.uid, ...wrapper }, transaction: tran }
-                )
+                return await model.update(beforeUpdateOne(data), {
+                    where: { uid: data.uid, ...wrapper },
+                    transaction: tran
+                })
             })
         },
         // 获取一条数据
@@ -61,14 +60,17 @@ export default class CaseService {
     static async createCase(data: any) {
         const { curSituation, summary, medical, mdHistory, auth } = data
         if (curSituation == null || !summary) throw ErrorCode.PARAMS_MISS_ERROR
+
+        const title = await getKeywords(summary)
+
         return await CaseDao.insertOne({
             curSituation,
             summary,
+            title,
             medical: JSON.stringify(medical),
             mdHistory: JSON.stringify(mdHistory),
             userid: auth.uid
         })
-
     }
 
     // 病情反馈
@@ -80,17 +82,20 @@ export default class CaseService {
         await CaseDao.updateOne({ status, uid })
     }
 
-
     // 查询病例列表
     static async getCaseList(data: any) {
         const { auth } = data
         // 获取分页参数
         const { order, getPageResult } = getPageParams(data)
 
-        const list = await Case.findAll({ where: { userid: auth.uid }, ...order, order: [['createdAt', 'DESC']] })
-        
-        const total = await Case.count({ where: { userid: auth.uid }})
-        
+        const list = await Case.findAll({
+            where: { userid: auth.uid },
+            ...order,
+            order: [['createdAt', 'DESC']]
+        })
+
+        const total = await Case.count({ where: { userid: auth.uid } })
+
         return getPageResult(list, total)
     }
 
@@ -114,7 +119,11 @@ export default class CaseService {
         const { caseid, auth } = data
         try {
             const result = await Prompts.getCaseAnalize(caseid, res)
-            CaseAnaDao.insertOne({...result, content: result, userid: auth.uid, caseid})
+            CaseAnaDao.insertOne({
+                content: result,
+                userid: auth.uid,
+                caseid
+            })
         } catch (e) {
             CaseAnaDao.insertOne({ status: 2, userid: auth.uid, caseid })
             console.log(e)

@@ -20,7 +20,6 @@ export class CaseInfo {
     @Post('/keep')
     async keeponChat(req: Request, res: Response, next: NextFunction) {
         try {
-            console.log(req)
             await ChatService.keeponChat(req.body, res)
         } catch (e) {
             next(e)
@@ -30,8 +29,8 @@ export class CaseInfo {
     @Post('/leave')
     async leaveChat(req: Request, res: Response, next: NextFunction) {
         try {
-            await ChatService.leaveChat(req.body, res)
-            // res.send(SuccessRes('success'))
+            await ChatService.leaveChat(req.body)
+            res.send(SuccessRes('success'))
         } catch (e) {
             next(e)
         }
@@ -50,7 +49,9 @@ export class CaseInfo {
     @Get('/detail')
     async getRecordDetail(req: Request, res: Response, next: NextFunction) {
         try {
-            res.send(SuccessRes(await ChatService.getChatRecordDetail(req.query)))
+            res.send(
+                SuccessRes(await ChatService.getChatRecordDetail(req.query))
+            )
         } catch (e) {
             next(e)
         }
@@ -60,7 +61,7 @@ export class CaseInfo {
     async getLastChat(req: Request, res: Response, next: NextFunction) {
         try {
             const { auth } = req
-            res.send(SuccessRes(await ChatService.checkChatIsNew({ auth })));
+            res.send(SuccessRes(await ChatService.checkChatIsNew({ auth })))
         } catch (e) {
             next(e)
         }

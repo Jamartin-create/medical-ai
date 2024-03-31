@@ -41,10 +41,11 @@ export async function getAnswer(
             res.status(200)
             const response = await axios.post(
                 `${API}/ai/v1/chat/create/`,
-                { messages },
+                { messages, accessToken: config.aiServer.accessToken },
                 { responseType: 'stream' }
             )
             const chunkRequest = response.data
+
             let ret: string = ''
             chunkRequest.on('data', (chunk: Buffer) => {
                 let chunkRes: string = chunk.toString()
@@ -60,6 +61,7 @@ export async function getAnswer(
                 res.end()
             })
             chunkRequest.on('error', () => {
+                res.write(`event: error\ndata: 生成失败`)
                 res.end()
                 throw ErrorCode.EXCUTE_ERROR
             })
@@ -72,9 +74,9 @@ export async function getAnswer(
 // 普通请求
 export async function getAnswerWithStream(messages: MessageT[]): Promise<any> {
     const data = await axios.post(`${API}/ai/v1/chat/createWithNoStream`, {
-        messages
+        messages,
+        accessToken: config.aiServer.accessToken
     })
-    console.log(data.data)
     if (!data) throw ErrorCode.NETWORK_ERROR
     if (!data.data) throw ErrorCode.NETWORK_ERROR
     if (!data.data.data) throw ErrorCode.AI_GEN_ERROR

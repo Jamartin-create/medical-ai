@@ -7,7 +7,7 @@ import { sequelize, transactionAction } from '../../../plugin/sequelize'
 import { DataTypes, QueryTypes } from 'sequelize'
 import { ErrorCode } from '../../../utils/exceptions'
 import { beforeCreateOne, beforeUpdateOne } from '../../../utils/database'
-import Prompts, { deafultPlanReviewGenPrompt } from '../prompts'
+import Prompts, { getTitle } from '../prompts'
 import { getPageParams, ie } from '../../../utils/tools'
 import { Response } from 'express'
 import { Op } from 'sequelize'
@@ -93,18 +93,19 @@ export default class PlanService {
         const plan = await Plan.findOne({ where: { uid } })
         if (!plan) throw ErrorCode.PARAMS_MISS_ERROR
         await PlanDao.updateOne({ uid, endAt: new Date().getTime(), status: 1 })
-        this.genPlanReview(uid)
+        // this.genPlanReview(uid)
     }
 
     // 日常打卡
     static async dailyCheck(data: any) {
-        const { auth, ...other } = data
-        const { planid, diet, sleep, medical } = other
+        const { auth, ...more } = data
+        const { planid, diet, sleep, medical, other } = more
         if (!planid || !diet || !sleep || !medical)
             throw ErrorCode.PARAMS_MISS_ERROR
         return await PlanRecordDao.insertOne({
             userid: auth.uid,
-            ...other
+            ...more,
+            other: other || ''
         })
     }
 
@@ -113,30 +114,19 @@ export default class PlanService {
         const { auth, planid } = data
         console.log(`user: ${auth.uid}, plan: ${planid} 生成记录`)
 
-        const { title, ...other } = await Prompts.getChatPlanOverview(
-            planid,
-            res
-        )
-
-        await PlanDao.updateOne({ uid: planid, title })
-        await PlanOverviewDao.insertOne({ planid, ...other })
-    }
-
-    // ai 对计划完成情况进行复盘
-    static async genPlanReview(planid: string) {
-        console.log(`plan: ${planid}`)
-
-        const { tags, content } = await Prompts.getPlanReview(
-            await deafultPlanReviewGenPrompt(planid)
-        )
-
-        await PlanReviewDao.insertOne({ planid, tags, content })
+        try {
+            const content = await Prompts.getChatPlanOverview(planid, res)
+            const title = await getTitle(content, '计划')
+            await PlanDao.updateOne({ uid: planid, title })
+            await PlanOverviewDao.insertOne({ planid, content })
+        } catch (e) {
+            console.log(e)
+            throw ErrorCode.AI_GEN_ERROR
+        }
     }
 
     // 每日打卡后的 ai 分析
     static async genDailyPlanNews(data: any, res: Response) {
-        console.log(`recordid: ${data.recordid}`)
-
         const content = await Prompts.getDailyRecordAnalize(data.recordid, res)
 
         await PlanRecordAnaDao.insertOne({

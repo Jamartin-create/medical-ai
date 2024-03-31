@@ -36,7 +36,8 @@ const config = {
         assumeRoleSessionName: process.env.ASSUME_ROLE_SESSION_NAME
     },
     aiServer: {
-        api: process.env.AI_API
+        api: process.env.AI_API,
+        accessToken: process.env.AI_ACCESS_TOKEN
     },
     mail: {
         username: process.env.MAIL_USER,
