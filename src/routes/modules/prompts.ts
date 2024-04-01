@@ -1,7 +1,7 @@
-/** @description 生成提示词脚本 */
+/** @description 生成提示词脚本（🌟🌟🌟🌟🌟） */
 
 import { Response } from 'express'
-import { MessageT, getAnswer, getAnswerWithStream } from '../../utils/aiModel'
+import { MessageT, getAnswer, getAnswerWithStream } from '../../utils/aiModel' // 引入核心文件
 import UserService from './user/service'
 import { ErrorCode } from '../../utils/exceptions'
 import { PlanDao, PlanOverviewDao, PlanRecordDao } from './plan/service'
@@ -31,9 +31,11 @@ type PromptT = {
 
 // 生成针对特定病人的身体情况而定的医生人设 prompts
 export const defaultPrompts = async (uid: string): Promise<PromptT> => {
+    // 获取用户信息（chat 时就可以提到）
     const info = await UserService.getUserHealth(uid)
     if (!info) throw ErrorCode.NOT_FOUND_USER_ERROR
 
+    // 返回提示词
     return {
         character: '门诊医生',
         summary: `
@@ -55,14 +57,14 @@ async function getChatPlanOverview(
     planid: string,
     res?: Response
 ): Promise<string> {
-    // TODO：获取用户的病史加入分析过程
+    // 获取有用信息
     async function getInfo() {
+        // 获取计划
         const plan = await PlanDao.selectOne({ wrp: { uid: planid } })
-
         if (!plan) throw ErrorCode.NOT_FOUND_PLAN_ERROR
-
         const planValue = plan.dataValues
 
+        // 获取用户目标和期望治疗周期
         const target = planValue.target
         const cycle = planValue.cycle
 
@@ -72,6 +74,7 @@ async function getChatPlanOverview(
         return `此次${type}目标：${target}，期望${type}疗程（周期）：${cycle}`
     }
 
+    // 获取提示词
     const prompts = getChatCharacter({
         character: '康复医疗师',
         summary: `
@@ -88,6 +91,7 @@ async function getChatPlanOverview(
         `
     })
 
+    // 开始分析（问 ChatGPT/文心一言）
     const response = !res
         ? await getAnswerWithStream(prompts)
         : await getAnswer(res, prompts)
@@ -100,17 +104,21 @@ async function getDailyRecordAnalize(
     recordid: string,
     res?: Response
 ): Promise<string> {
+    // 拼接有用信息
     function getRecordInfo(record: any) {
         return `三餐：${record.diet}；睡眠：${record.sleep}；用药：${record.medical}；其他：${record.other}`
     }
 
+    // 获取本次打卡记录
     const record = await PlanRecordDao.selectOne({ wrp: { uid: recordid } })
-    if (!record) throw ErrorCode.NOT_FOUND_PLAN_RECORD_ERROR
+    if (!record) throw ErrorCode.NOT_FOUND_PLAN_RECORD_ERROR // 没查到就报错
+    // 获取计划大纲（AI 分析会用到）
     const overview = await PlanOverviewDao.selectOne({
         wrp: { planid: record.dataValues.planid }
     })
-    if (!overview) throw ErrorCode.NOT_FOUND_PLAN_OVERVIEW_ERROR
+    if (!overview) throw ErrorCode.NOT_FOUND_PLAN_OVERVIEW_ERROR // 没查到就报错
 
+    // 获取本计划的历史打卡记录
     const records = await PlanRecordDao.selectList({
         wrp: {
             [Op.and]: [
@@ -124,7 +132,7 @@ async function getDailyRecordAnalize(
         }
     })
 
-    // 获取历史打卡记录
+    // 有用信息拼接
     const hisRecords = records
         .map(item => {
             return `
@@ -133,6 +141,7 @@ async function getDailyRecordAnalize(
         })
         .join('\n')
 
+    // 生成提示词
     const prompts = getChatCharacter({
         character: '康复医疗师',
         summary: `
@@ -148,6 +157,8 @@ async function getDailyRecordAnalize(
             请开始分析
         `
     })
+
+    // 开始分析（根据需要，选择是否是流式返回）
     const result = !res
         ? await getAnswerWithStream(prompts)
         : await getAnswer(res, prompts)
@@ -157,10 +168,11 @@ async function getDailyRecordAnalize(
 
 /** @description 病情分析 */
 async function getCaseAnalize(caseid: string, res?: Response): Promise<string> {
-    // 获取信息
+    // 获取有用信息
     async function getInfo() {
+        // 获取健康档案
         const cs = await CaseDao.selectOne({ wrp: { uid: caseid } })
-        if (!cs) throw ErrorCode.NOT_FOUND_CASE_ERROR
+        if (!cs) throw ErrorCode.NOT_FOUND_CASE_ERROR // 没查到就报错
         const { dataValues } = cs
         const curSit = dataValues.curSituation
         return `
@@ -172,6 +184,7 @@ async function getCaseAnalize(caseid: string, res?: Response): Promise<string> {
         `
     }
 
+    // 生成提示词
     const prompts = getChatCharacter({
         character: '医疗AI知识库',
         summary: `
@@ -185,12 +198,14 @@ async function getCaseAnalize(caseid: string, res?: Response): Promise<string> {
         `
     })
 
+    // 开始分析
     const response = !res
         ? await getAnswerWithStream(prompts)
-        : getAnswer(res, prompts)
+        : await getAnswer(res, prompts)
     return response
 }
 
+// 根据某段文本生成标题
 export async function getTitle(
     content: string,
     type: string,
@@ -205,9 +220,11 @@ export async function getTitle(
             `
         }
     ])
+    // 把多余的部分去掉
     return title.replace('标题：', '')
 }
 
+// 根据某段文本提取关键词
 export async function getKeywords(content: string): Promise<string> {
     const keywords = await getAnswerWithStream([
         {
@@ -222,7 +239,6 @@ export async function getKeywords(content: string): Promise<string> {
     return keywords.replace('关键词：', '')
 }
 
-/** @description 预设 Prompt */
 export default {
     getChatCharacter,
     getChatPlanOverview,

@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import config from '../config/index.js'
 
+// 初始化邮件服务
 const transporter = nodemailer.createTransport({
     service: '163',
     host: 'pop.163.com',
@@ -12,6 +13,7 @@ const transporter = nodemailer.createTransport({
     }
 })
 
+// 定义使用类型（登录、注册、改密码）
 type OptionType = 'login' | 'register' | 'changePassword'
 type OptionoColumnType = {
     title: string

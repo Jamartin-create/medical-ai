@@ -33,10 +33,12 @@ export function catchException(
     next: NextFunction
 ) {
     if (err) {
+        // 权限问题单独处理
         if (err.name === 'UnauthorizedError') {
             res.send(ErrorRes(ErrorCode.AUTH_TOKEN_ERROR))
             return
         }
+        // 其他问题统一处理
         Log.error(err.msg || err.message)
         let e = err instanceof MError ? err : ErrorCode.EXCUTE_ERROR
         res.send(ErrorRes(e))

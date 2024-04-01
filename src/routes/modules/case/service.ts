@@ -23,8 +23,10 @@ CaseAna.addHook('beforeCreate', (caseAnaModel, _) => {
 
 type BaseModelT = typeof Case | typeof CaseAna
 
+// 数据库操作
 function BaseDao(model: BaseModelT) {
     return {
+        // 插入一条数据
         async insertOne(data: any) {
             return await transactionAction(async function (tran) {
                 return await model.create(beforeCreateOne(data), {
@@ -32,6 +34,7 @@ function BaseDao(model: BaseModelT) {
                 })
             })
         },
+        // 更新一条数据
         async updateOne(data: any, wrapper: any = {}) {
             return await transactionAction(async function (tran) {
                 return await model.update(beforeUpdateOne(data), {
@@ -58,11 +61,14 @@ export const CaseAnaDao = BaseDao(CaseAna)
 export default class CaseService {
     // 创建病例
     static async createCase(data: any) {
+        // 取出前端传来的参数
         const { curSituation, summary, medical, mdHistory, auth } = data
+        // 判断必传参数是否传了，没传就报错
         if (curSituation == null || !summary) throw ErrorCode.PARAMS_MISS_ERROR
 
-        const title = await getKeywords(summary)
+        const title = await getKeywords(summary) // 根据用户的描述生成关键词
 
+        // 插入一条病例数据
         return await CaseDao.insertOne({
             curSituation,
             summary,
