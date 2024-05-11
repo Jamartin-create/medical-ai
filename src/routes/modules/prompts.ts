@@ -222,7 +222,9 @@ export async function getTitle(
     ])
     // 把多余的部分去掉
     const ret: string = title.replace('标题：', '')
-    return ret.slice(0, count)
+    const [str1] = ret.split(' ')
+    if (str1.length >= 15) return str1.slice(0, 15)
+    return str1
 }
 
 // 根据某段文本提取关键词
